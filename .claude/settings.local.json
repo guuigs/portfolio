@@ -9,7 +9,11 @@
       "Bash(cat:*)",
       "Bash(mkdir:*)",
       "Bash(rm:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(find:*)",
+      "Bash(timeout 8 npm run dev:*)",
+      "Bash(mv:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []

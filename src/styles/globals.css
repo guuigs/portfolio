@@ -1,0 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --blue-primary: 237 89% 51%; /* #1823EE */
+  }
+
+  body {
+    @apply font-sans antialiased bg-white text-black;
+  }
+}
+
+@theme {
+  --font-sans: "Inter", sans-serif;
+  --font-serif: "Crimson Text", serif;
+  --color-primary-blue: #1823EE;
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
