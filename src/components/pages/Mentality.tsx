@@ -9,9 +9,9 @@ export function Mentality() {
           Créer et être heureux
         </h1>
 
-        {/* First section with text and image */}
-        <div className="flex flex-col md:flex-row gap-[40px] md:gap-[100px] items-start mb-[60px] md:mb-[100px]">
-          <div className="font-sans text-[18px] md:text-[20px] leading-normal text-black max-w-full md:w-[840px] space-y-6">
+        {/* First section with text */}
+        <div className="mb-[60px] md:mb-[100px]">
+          <div className="font-sans text-[18px] md:text-[20px] leading-normal text-black space-y-6">
             <p>
               Il peux sembler bien prétentieux de tirer seulement dans sa vingtaine de grandes conclusions sur la vie et sur ma carrière. Je ne vous ferais pas cet affront. Je pense cependant pouvoir déjà initier une refléction sur le chemin que je veux donner à ma vie.
             </p>
@@ -22,23 +22,21 @@ export function Mentality() {
               La création aujourd'hui porte bien des difficultés, menacé par l'intelligence artificielle, par la concurrence, la chute des prix et la mondialisation qui menace l'artisanat. Je suis porté et inspiré par William Morris, porteur du mouvement Arts and Crafts, qui prone le retour du beau et de l'utile dans nos foyers. C'est bien cette idée que je porte tout au long de mon parcours de création : réaliser un produit utile et beau, au service de la communanuté.
             </p>
           </div>
-          <div className="bg-[#d9d9d9] h-[250px] md:h-[350px] w-full md:w-[300px] shrink-0" />
         </div>
 
         {/* William Morris quote */}
         <div className="flex flex-col gap-[20px] md:gap-[30px] mb-[60px] md:mb-[100px] max-w-full">
-          <p className="font-serif italic text-[36px] md:text-[60px] leading-[1.2] text-black">
+          <p className="font-serif italic text-[36px] md:text-[60px] leading-[1.2] text-primary-blue">
             "N'aie rien chez toi que tu ne saches utile ou que tu croies beau."
           </p>
-          <p className="font-serif text-[24px] md:text-[30px] text-black">
+          <p className="font-serif text-[24px] md:text-[30px] text-primary-blue">
             William Morris
           </p>
         </div>
 
-        {/* Second section with image and text */}
-        <div className="flex flex-col md:flex-row gap-[40px] md:gap-[100px] items-start mb-[60px] md:mb-[100px]">
-          <div className="bg-[#d9d9d9] h-[250px] md:h-[326px] w-full md:w-[300px] shrink-0" />
-          <div className="font-sans text-[18px] md:text-[20px] leading-normal text-black max-w-full md:w-[839px] space-y-6">
+        {/* Second section with text */}
+        <div className="mb-[60px] md:mb-[100px]">
+          <div className="font-sans text-[18px] md:text-[20px] leading-normal text-black space-y-6">
             <p>
               En parallèle de cette philosophie, je me conforte aussi à l'idée que le capitalisme moderne entraine une accumulation des pouvoirs. Cette accumulation est porté par une centralisation des médias, mais encore et surtout par nos données.
             </p>
@@ -56,10 +54,10 @@ export function Mentality() {
 
         {/* Baden Powell quote */}
         <div className="flex flex-col gap-[20px] md:gap-[30px] mb-[120px] max-w-full">
-          <p className="font-serif italic text-[36px] md:text-[60px] leading-[1.2] text-black">
+          <p className="font-serif italic text-[36px] md:text-[60px] leading-[1.2] text-primary-blue">
             "Je crois que Dieu nous a placés dans ce monde pour y être heureux et pour y jouir de la vie."
           </p>
-          <p className="font-serif text-[24px] md:text-[30px] text-black">
+          <p className="font-serif text-[24px] md:text-[30px] text-primary-blue">
             Baden Powell
           </p>
         </div>

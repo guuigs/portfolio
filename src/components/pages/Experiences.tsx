@@ -6,6 +6,12 @@ import ExperienceUtilisateur from "../../imports/ExperienceUtilisateur";
 import DeveloppementWeb from "../../imports/DeveloppementWeb";
 import GestionDeProjets from "../../imports/GestionDeProjets";
 
+// Import des images
+import imgElapsio1 from "@/assets/images/Experiences/Design graphique/Elapsio1.png";
+import imgElapsio2 from "@/assets/images/Experiences/Design graphique/Elapsio 2.png";
+import imgLKL from "@/assets/images/Experiences/Design graphique/LKL.png";
+import imgArtsingDesign from "@/assets/images/Experiences/Design graphique/Artsing.png";
+
 const CATEGORIES = [
   { id: "design", label: "Design graphique" },
   { id: "ux", label: "Expérience utilisateur" },
@@ -26,21 +32,25 @@ const CONTENT = {
       </div>
       
       <div className="space-y-12 w-full max-w-[600px]">
-        <ProjectCard 
-          title="Elapsio - création d'un branding l'entreprise Elapsio" 
-          imageUrl="https://images.unsplash.com/photo-1759229874914-c1ffdb3ebd0c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
+        <ProjectCard
+          title="Elapsio - création d'un branding l'entreprise Elapsio"
+          imageUrl={imgElapsio1}
+          aspectRatio="auto"
         />
-        <ProjectCard 
-          title="Elapsio - création de packagings pour leur produit phare : le kit alimentaire de randonnée" 
-          imageUrl="https://images.unsplash.com/photo-1720762224315-439072aa22c6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
+        <ProjectCard
+          title="Elapsio - création de packagings pour leur produit phare : le kit alimentaire de randonnée"
+          imageUrl={imgElapsio2}
+          aspectRatio="auto"
         />
-        <ProjectCard 
-          title="LKL - création d'un branding pour la league esport amateur LKL" 
-           imageUrl="https://images.unsplash.com/photo-1759229874914-c1ffdb3ebd0c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
+        <ProjectCard
+          title="LKL - création d'un branding pour la league esport amateur LKL"
+          imageUrl={imgLKL}
+          aspectRatio="auto"
         />
-        <ProjectCard 
-          title="Artsing - création d'un branding et d'une page web avec usage de l'intelligence artificielle à ses balbutiements." 
-           imageUrl="https://images.unsplash.com/photo-1720762224315-439072aa22c6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
+        <ProjectCard
+          title="Artsing - création d'un branding et d'une page web avec usage de l'intelligence artificielle à ses balbutiements."
+          imageUrl={imgArtsingDesign}
+          aspectRatio="auto"
         />
       </div>
     </div>

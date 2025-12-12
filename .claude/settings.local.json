@@ -13,7 +13,13 @@
       "Bash(find:*)",
       "Bash(timeout 8 npm run dev:*)",
       "Bash(mv:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(cp:*)",
+      "Bash(cmd //c copy \"src\\assets\\pdf\\Mémoire - M1 DIMI.pdf\" \"public\\pdf\\memoire-m1-dimi.pdf\")",
+      "Bash(cmd //c copy \"src\\assets\\images\\logo réduit.png\" \"public\\favicon.png\")",
+      "Bash(cmd //c del \"c:\\Users\\Admin\\Desktop\\PORTFOLIO\\public\\favicon.png\")",
+      "Bash(cmd //c copy \"c:\\Users\\Admin\\Desktop\\PORTFOLIO\\src\\assets\\images\\logo réduit.png\" \"c:\\Users\\Admin\\Desktop\\PORTFOLIO\\public\\logo-reduit.png\")",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

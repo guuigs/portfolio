@@ -18,7 +18,7 @@ export function TransitionOverlay({ isVisible, onCovered }: TransitionOverlayPro
           {[0, 1, 2, 3].map((index) => (
             <motion.div
               key={index}
-              className="relative w-full h-[25vh] bg-white border-b border-gray-50/10" // Added border to avoid pixel gaps
+              className="relative w-full h-[25vh] bg-white"
               variants={{
                 hidden: { x: "-100%" },
                 visible: { x: "0%" },

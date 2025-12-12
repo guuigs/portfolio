@@ -31,6 +31,12 @@ declare module '*.webp' {
   export default src;
 }
 
+// PDF files
+declare module '*.pdf' {
+  const src: string;
+  export default src;
+}
+
 // Figma assets (legacy support)
 declare module 'figma:asset/*' {
   const src: string;

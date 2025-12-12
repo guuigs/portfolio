@@ -1,41 +1,5 @@
-function Frame() {
-  return <div className="bg-[#1823ee] h-[400px] shrink-0 w-full" />;
-}
-
-function Frame2() {
-  return (
-    <div className="content-stretch flex flex-col gap-[10px] items-start relative shrink-0 w-full">
-      <Frame />
-      <p className="font-serif italic leading-[20px] relative shrink-0 text-[20px] text-black w-full">C2RMF - Gestion technique et éditoriale du site vitrine du centre</p>
-    </div>
-  );
-}
-
-function Frame1() {
-  return <div className="bg-[#1823ee] h-[400px] shrink-0 w-full" />;
-}
-
-function Frame3() {
-  return (
-    <div className="content-stretch flex flex-col gap-[10px] items-start relative shrink-0 w-full">
-      <Frame1 />
-      <p className="font-serif italic leading-[20px] relative shrink-0 text-[20px] text-black w-full">Inrap - Accompagnement sur les refontes de 3 sites de l'Inrap</p>
-    </div>
-  );
-}
-
-function Frame5() {
-  return <div className="bg-[#1823ee] h-[400px] shrink-0 w-full" />;
-}
-
-function Frame4() {
-  return (
-    <div className="content-stretch flex flex-col gap-[10px] items-start relative shrink-0 w-full">
-      <Frame5 />
-      <p className="font-serif italic leading-[20px] relative shrink-0 text-[20px] text-black w-full">Inrap - Direction et gestion du projet Megalithe à l'occasion du bicentenaire de la photographie</p>
-    </div>
-  );
-}
+import { ProjectCard } from "../components/pages/ProjectCard";
+import imgC2RMF from "@/assets/images/Experiences/Gestion de projet/C2RMF.png";
 
 export default function GestionDeProjets() {
   return (
@@ -64,7 +28,13 @@ export default function GestionDeProjets() {
           </li>
         </ul>
       </div>
-      <Frame2 />
+      <div className="w-full max-w-[600px]">
+        <ProjectCard
+          title="C2RMF - Gestion technique et éditoriale du site vitrine du centre"
+          imageUrl={imgC2RMF}
+          aspectRatio="auto"
+        />
+      </div>
       <div className="font-sans leading-[0] relative shrink-0 text-[20px] text-black w-full">
         <p className="leading-[normal] mb-0">{`Mes actions à l'Inrap : `}</p>
         <ul className="list-disc">
@@ -79,8 +49,6 @@ export default function GestionDeProjets() {
           </li>
         </ul>
       </div>
-      <Frame3 />
-      <Frame4 />
     </div>
   );
 }
