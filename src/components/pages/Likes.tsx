@@ -99,7 +99,7 @@ const MANGAS = [
     link: "https://www.amazon.fr/Kingdom-1-Fran%C3%A7ais-Yasuhisa-Hara/dp/2368778055"
   },
   {
-    title: "Les maîtres de l'orge - Charles 1854",
+    title: "Les maîtres de l'orge - Jean Van Hamme",
     img: imgMaitres,
     link: "https://www.amazon.fr/Ma%C3%AEtres-lorge-01-Charles-1854/dp/234400453X"
   },
@@ -145,7 +145,7 @@ const MOVIES = [
 
 const MUSIC = [
   {
-    title: "Soleil Pluvieux - Soso Maness",
+    title: "Soleil Pluvieux - Yvnnis",
     img: imgSoleilPluvieux,
     link: "https://link.deezer.com/s/31QSjEd1nchhywfUDzaFs"
   },
@@ -160,27 +160,27 @@ const MUSIC = [
     link: "https://link.deezer.com/s/31QSht5ukDwlikFrkyfzM"
   },
   {
-    title: "20.000 - Soprano",
+    title: "20.000 - EDGE feat. Alpha Wann",
     img: img20000,
     link: "https://link.deezer.com/s/31QSg1lIgwIwnzT0IYsN7"
   },
   {
-    title: "Wake me up - Avicii",
+    title: "Wake me up - The Weeknd",
     img: imgWakeMeUp,
     link: "https://link.deezer.com/s/31QSgqKH6R2X4fnAPKnY4"
   },
   {
-    title: "Pair of wings - Frankie Stew and Harvey Gunn",
+    title: "Pair of Wings - Frankie Rose",
     img: imgPairWings,
     link: "https://link.deezer.com/s/31QSitu594i1usLuHCw2F"
   },
   {
-    title: "Une histoire étrange - Columbine",
+    title: "Une histoire étrange - Laylow",
     img: imgHistoireEtrange,
     link: "https://link.deezer.com/s/31QSf0hoEcltTt0SN8vCS"
   },
   {
-    title: "Soleil de ma vie - IAM",
+    title: "Soleil de ma vie - Zamdane",
     img: imgSoleilVie,
     link: "https://link.deezer.com/s/31QSenS9oQVE1er3ZUjCT"
   },

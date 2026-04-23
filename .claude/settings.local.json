@@ -19,7 +19,15 @@
       "Bash(cmd //c copy \"src\\assets\\images\\logo réduit.png\" \"public\\favicon.png\")",
       "Bash(cmd //c del \"c:\\Users\\Admin\\Desktop\\PORTFOLIO\\public\\favicon.png\")",
       "Bash(cmd //c copy \"c:\\Users\\Admin\\Desktop\\PORTFOLIO\\src\\assets\\images\\logo réduit.png\" \"c:\\Users\\Admin\\Desktop\\PORTFOLIO\\public\\logo-reduit.png\")",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npx vite *)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(/Users/guilhemterrier/Downloads/portfolio/node_modules/.bin/tsc --noEmit)",
+      "Bash(node_modules/.bin/vite build *)",
+      "WebSearch",
+      "WebFetch(domain:fshg.bandcamp.com)",
+      "WebFetch(domain:www.albumoftheyear.org)",
+      "WebFetch(domain:www.last.fm)"
     ],
     "deny": [],
     "ask": []

@@ -34,6 +34,7 @@ export function useCardTilt(options: TiltOptions = {}) {
       }
 
       updateRAF = requestAnimationFrame(() => {
+        boundsRef.current = element.getBoundingClientRect();
         const bounds = boundsRef.current!;
         const mouseX = e.clientX;
         const mouseY = e.clientY;

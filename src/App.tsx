@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Header } from "./components/layout/Header";
 import { TransitionOverlay } from "./components/layout/TransitionOverlay";
 import { Home } from "./components/pages/Home";
@@ -17,13 +17,19 @@ export default function App() {
     setIsTransitioning(true);
   };
 
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+    };
+  }, []);
+
   const handleCovered = () => {
     if (targetPage) {
       setCurrentPage(targetPage);
       setTargetPage(null);
-      // Wait a small moment or immediately trigger exit
-      // To ensure React renders the new page behind the curtain before lifting it
-      setTimeout(() => {
+      transitionTimerRef.current = setTimeout(() => {
         setIsTransitioning(false);
       }, 100);
     }

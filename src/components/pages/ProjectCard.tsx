@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useCardTilt } from "../../hooks/useCardTilt";
 import { cn } from "../../lib/utils";
@@ -27,8 +27,18 @@ export function ProjectCard({ title, imageUrl, link, aspectRatio = "2/3" }: Proj
     glareMaxOpacity: 0.25,
   });
 
-  const handleCardClick = () => {
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsModalOpen(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isModalOpen]);
+
+  const handleCardClick = (e: React.MouseEvent) => {
     if (aspectRatio === "auto" && imageUrl) {
+      e.preventDefault();
       setIsModalOpen(true);
     }
   };
@@ -45,7 +55,7 @@ export function ProjectCard({ title, imageUrl, link, aspectRatio = "2/3" }: Proj
     <div
       ref={elementRef}
       style={tiltStyle}
-      onClick={handleCardClick}
+      onClick={(e) => handleCardClick(e)}
       className={cn(
         "w-full bg-primary-blue relative overflow-hidden cursor-pointer rounded-[10px] shadow-[0_1px_5px_#00000099] transition-shadow duration-300 hover:shadow-[0_5px_20px_5px_#00000044]",
         aspectRatio === "1/1" ? "aspect-square" : aspectRatio === "2/3" ? "aspect-[2/3]" : ""
