@@ -28,5 +28,5 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./build/   # React = dossier build/
+          local-dir: ./dist/   # React = dossier build/
           server-dir: /www/
