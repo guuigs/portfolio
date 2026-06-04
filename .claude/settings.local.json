@@ -27,7 +27,11 @@
       "WebSearch",
       "WebFetch(domain:fshg.bandcamp.com)",
       "WebFetch(domain:www.albumoftheyear.org)",
-      "WebFetch(domain:www.last.fm)"
+      "WebFetch(domain:www.last.fm)",
+      "Bash(grep:*)",
+      "Bash(npm ls:*)",
+      "Bash(wc:*)",
+      "Bash(xargs ls:*)"
     ],
     "deny": [],
     "ask": []
