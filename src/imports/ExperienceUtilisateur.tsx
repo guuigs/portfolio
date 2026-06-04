@@ -1,6 +1,7 @@
 import { ProjectCard } from "../components/pages/ProjectCard";
 import imgMemoire from "@/assets/images/Experiences/Experience utilisateur/Mémoire.png";
 import imgWakey from "@/assets/images/Experiences/Experience utilisateur/Wakey.png";
+import memoireM2 from "@/assets/pdf/MEMOIRE - Guilhem Terrier.pdf";
 
 export default function ExperienceUtilisateur() {
   return (
@@ -20,14 +21,13 @@ export default function ExperienceUtilisateur() {
         />
       </div>
       <a
-        href="/pdf/memoire-m1-dimi.pdf"
+        href={memoireM2}
         target="_blank"
         rel="noopener noreferrer"
         className="font-serif leading-[normal] relative shrink-0 text-[20px] text-black underline hover:text-primary-blue transition-colors w-full"
       >
-        Mémoire DIMI - Partie 1
+        Memoire
       </a>
-      <p className="font-serif leading-[normal] relative shrink-0 text-[20px] text-black w-full">Mémoire DIMI - Version finale (en cours de rédaction)</p>
       <p className="font-sans leading-[normal] relative shrink-0 text-[20px] text-black w-full">
         Cette attache pour l'importance de l'expérience utilisateur se reflète également dans un projet personnel Wakey : une application agrégateur par IA de l'actualité.
       </p>
