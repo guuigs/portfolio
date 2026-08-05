@@ -8,12 +8,22 @@ import {
   type ReactNode,
 } from "react";
 import { DEFAULT_CONTENT, type Content } from "./content";
+import {
+  currentSession,
+  fetchContent,
+  isRemoteEnabled,
+  publishContent,
+  signIn as remoteSignIn,
+  signOut as remoteSignOut,
+  supabase,
+} from "./supabase";
 
 const STORAGE_KEY = "guilhem-portfolio-content-v2";
 
+export type PublishState = "idle" | "publishing" | "done" | "error";
+
 /** The editing surface every consumer sees. Deliberately an interface so the
- *  persistence layer can be swapped (localStorage today, an API later)
- *  without touching a single view. */
+ *  persistence layer can be swapped without touching a single view. */
 export interface ContentStore {
   content: Content;
   /** Set a value by dotted path, e.g. `profile.heroTitle` or `skills.0.title`. */
@@ -25,6 +35,21 @@ export interface ContentStore {
   removeItem: (collection: "skills" | "cases" | "likes", index: number) => void;
   reset: () => void;
   exportJSON: () => void;
+
+  /* ---- publication ---- */
+  /** True when a Supabase project is wired up. */
+  remoteEnabled: boolean;
+  /** Email of the signed-in admin, null when signed out. */
+  adminEmail: string | null;
+  /** Local edits that differ from what is published. */
+  dirty: boolean;
+  publishState: PublishState;
+  publishError: string | null;
+  publish: () => Promise<void>;
+  /** Throw away the local draft and go back to the published version. */
+  discardDraft: () => void;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const ContentContext = createContext<ContentStore | null>(null);
@@ -33,15 +58,15 @@ function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
-function load(): Content {
-  if (typeof window === "undefined") return clone(DEFAULT_CONTENT);
+function readLocal(): Content | null {
+  if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return clone(DEFAULT_CONTENT);
+    if (!raw) return null;
     // Shallow-merge so newly shipped default keys survive an old saved payload.
     return { ...clone(DEFAULT_CONTENT), ...(JSON.parse(raw) as Partial<Content>) };
   } catch {
-    return clone(DEFAULT_CONTENT);
+    return null;
   }
 }
 
@@ -56,8 +81,43 @@ function setByPath(target: Content, path: string, value: unknown): void {
   cursor[keys[keys.length - 1]] = value;
 }
 
+const same = (a: Content, b: Content) => JSON.stringify(a) === JSON.stringify(b);
+
 export function ContentProvider({ children }: { children: ReactNode }) {
-  const [content, setContent] = useState<Content>(load);
+  // Start from the bundled content (or a local draft) synchronously, so the
+  // first paint never waits on the network and never flashes empty.
+  const [content, setContent] = useState<Content>(() => readLocal() ?? clone(DEFAULT_CONTENT));
+  const [published, setPublished] = useState<Content | null>(null);
+  const [adminEmail, setAdminEmail] = useState<string | null>(null);
+  const [publishState, setPublishState] = useState<PublishState>("idle");
+  const [publishError, setPublishError] = useState<string | null>(null);
+
+  // Adopt the published content on load. A local draft wins, so an unfinished
+  // edit survives a refresh — the drawer surfaces the conflict either way.
+  useEffect(() => {
+    if (!isRemoteEnabled) return;
+    let cancelled = false;
+
+    void (async () => {
+      const remote = await fetchContent();
+      if (cancelled || !remote) return;
+      setPublished(remote);
+      if (!readLocal()) setContent(remote);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!supabase) return;
+    void currentSession().then((session) => setAdminEmail(session?.email ?? null));
+    const { data } = supabase.auth.onAuthStateChange((_event, session) =>
+      setAdminEmail(session?.user.email ?? null),
+    );
+    return () => data.subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     try {
@@ -98,6 +158,15 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     setContent(clone(DEFAULT_CONTENT));
   }, []);
 
+  const discardDraft = useCallback(() => {
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+    setContent(published ? clone(published) : clone(DEFAULT_CONTENT));
+  }, [published]);
+
   const exportJSON = useCallback(() => {
     const blob = new Blob([JSON.stringify(content, null, 2)], {
       type: "application/json",
@@ -110,9 +179,64 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     URL.revokeObjectURL(url);
   }, [content]);
 
+  const publish = useCallback(async () => {
+    setPublishState("publishing");
+    setPublishError(null);
+    try {
+      await publishContent(content);
+      setPublished(clone(content));
+      setPublishState("done");
+      window.setTimeout(() => setPublishState("idle"), 2500);
+    } catch (error) {
+      setPublishError(error instanceof Error ? error.message : String(error));
+      setPublishState("error");
+    }
+  }, [content]);
+
+  const signIn = useCallback(async (email: string, password: string) => {
+    await remoteSignIn(email, password);
+  }, []);
+
+  const signOut = useCallback(async () => {
+    await remoteSignOut();
+  }, []);
+
+  const dirty = published !== null && !same(content, published);
+
   const value = useMemo<ContentStore>(
-    () => ({ content, setField, addItem, removeItem, reset, exportJSON }),
-    [content, setField, addItem, removeItem, reset, exportJSON],
+    () => ({
+      content,
+      setField,
+      addItem,
+      removeItem,
+      reset,
+      exportJSON,
+      remoteEnabled: isRemoteEnabled,
+      adminEmail,
+      dirty,
+      publishState,
+      publishError,
+      publish,
+      discardDraft,
+      signIn,
+      signOut,
+    }),
+    [
+      content,
+      setField,
+      addItem,
+      removeItem,
+      reset,
+      exportJSON,
+      adminEmail,
+      dirty,
+      publishState,
+      publishError,
+      publish,
+      discardDraft,
+      signIn,
+      signOut,
+    ],
   );
 
   return <ContentContext.Provider value={value}>{children}</ContentContext.Provider>;

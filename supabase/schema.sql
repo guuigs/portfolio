@@ -1,0 +1,86 @@
+-- ============================================================
+-- Portfolio — schéma Supabase
+--
+-- À exécuter une fois dans le SQL Editor du projet.
+--
+-- Avant de lancer : cherchez les trois occurrences de l'adresse
+-- guilhemterrier58@gmail.com et remplacez-les si le compte Supabase utilise
+-- une autre adresse. C'est elle, et elle seule, qui pourra écrire.
+-- ============================================================
+
+-- ------------------------------------------------------------------ contenu
+--
+-- Un seul document JSON plutôt que des tables normalisées : le CMS édite
+-- déjà l'objet `Content` d'un bloc, et le site le lit d'un bloc. Découper en
+-- skills / cases / likes n'apporterait rien ici et multiplierait les
+-- allers-retours réseau au chargement.
+
+create table if not exists public.site_content (
+  id         text primary key default 'main',
+  data       jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.site_content enable row level security;
+
+-- Lecture ouverte : c'est le contenu public du site.
+drop policy if exists "lecture publique" on public.site_content;
+create policy "lecture publique"
+  on public.site_content for select
+  using (true);
+
+-- Écriture réservée à une adresse précise. Ne PAS se contenter de
+-- `to authenticated` : si les inscriptions sont ouvertes, n'importe qui
+-- pourrait créer un compte et réécrire le site.
+drop policy if exists "écriture admin" on public.site_content;
+create policy "écriture admin"
+  on public.site_content for all
+  using (auth.jwt() ->> 'email' = 'guilhemterrier58@gmail.com')
+  with check (auth.jwt() ->> 'email' = 'guilhemterrier58@gmail.com');
+
+-- Horodatage automatique, pour savoir quand la dernière publication a eu lieu.
+create or replace function public.touch_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists site_content_touch on public.site_content;
+create trigger site_content_touch
+  before update on public.site_content
+  for each row execute function public.touch_updated_at();
+
+-- ------------------------------------------------------------------ images
+--
+-- Bucket public : les URLs sont servies telles quelles dans les <img>, et
+-- elles sont stables — contrairement aux assets passés par Vite, dont le nom
+-- porte un hash qui change à chaque build.
+
+insert into storage.buckets (id, name, public)
+values ('media', 'media', true)
+on conflict (id) do update set public = true;
+
+drop policy if exists "media lecture publique" on storage.objects;
+create policy "media lecture publique"
+  on storage.objects for select
+  using (bucket_id = 'media');
+
+drop policy if exists "media écriture admin" on storage.objects;
+create policy "media écriture admin"
+  on storage.objects for all
+  using (
+    bucket_id = 'media'
+    and auth.jwt() ->> 'email' = 'guilhemterrier58@gmail.com'
+  )
+  with check (
+    bucket_id = 'media'
+    and auth.jwt() ->> 'email' = 'guilhemterrier58@gmail.com'
+  );
+
+-- ------------------------------------------------------------------ rappel
+--
+-- Dans Authentication → Sign In / Providers, désactivez « Allow new users to
+-- sign up ». Les politiques ci-dessus filtrent déjà par adresse, mais fermer
+-- les inscriptions retire complètement la surface.

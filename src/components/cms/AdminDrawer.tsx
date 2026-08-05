@@ -5,12 +5,16 @@ import {
   Download,
   ImagePlus,
   Plus,
+  CloudUpload,
+  LogOut,
   RotateCcw,
   Trash2,
   Type,
+  Upload,
   X,
 } from "lucide-react";
-import type { ContentStore } from "@/lib/store";
+import { useContentStore, type ContentStore } from "@/lib/store";
+import { uploadImage } from "@/lib/supabase";
 import type { Block, CaseStudy } from "@/lib/content";
 import type { SectionId } from "@/lib/router";
 import { Button } from "@/components/ui/Button";
@@ -97,6 +101,88 @@ function Field({
       )}
       {hint && <span className="text-[11px] leading-snug text-fg-faint">{hint}</span>}
     </label>
+  );
+}
+
+/**
+ * A URL field with an upload shortcut.
+ *
+ * Typing a URL still works — that is how the bundled assets stay reachable —
+ * but uploading pushes the file to Supabase Storage and writes back a public
+ * URL that survives a rebuild, unlike Vite's hashed asset names.
+ */
+function ImageField({
+  label,
+  value,
+  onCommit,
+}: {
+  label: string;
+  value: string;
+  onCommit: (value: string) => void;
+}) {
+  const { remoteEnabled, adminEmail } = useContentStore();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const canUpload = remoteEnabled && adminEmail !== null;
+
+  const onPick = async (file: File | undefined) => {
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      onCommit(await uploadImage(file));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Field label={label} value={value} onCommit={onCommit} />
+
+      <div className="flex items-center gap-2">
+        {value && (
+          <img
+            src={value}
+            alt=""
+            className="size-10 shrink-0 rounded border border-line object-cover"
+          />
+        )}
+
+        {canUpload ? (
+          <>
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              id={`upload-${label}-${value.slice(-12)}`}
+              onChange={(event) => void onPick(event.target.files?.[0])}
+            />
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => inputRef.current?.click()}
+            >
+              <Upload size={14} strokeWidth={1.75} aria-hidden="true" />
+              {busy ? "envoi…" : "téléverser"}
+            </Button>
+          </>
+        ) : (
+          <span className="text-[11px] text-fg-faint">
+            {remoteEnabled ? "connectez-vous pour téléverser" : "coller une URL"}
+          </span>
+        )}
+      </div>
+
+      {error && <p className="text-[11px] text-red-700">{error}</p>}
+    </div>
   );
 }
 
@@ -199,8 +285,8 @@ function HomePanel({ store }: { store: ContentStore }) {
           value={profile.heroIntro}
           onCommit={(value) => setField("profile.heroIntro", value)}
         />
-        <Field
-          label="visuel d’accueil (url)"
+        <ImageField
+          label="visuel d’accueil"
           value={profile.heroImage}
           onCommit={(value) => setField("profile.heroImage", value)}
         />
@@ -374,8 +460,8 @@ function BlockEditor({
 
       {block.type === "image" && (
         <>
-          <Field
-            label="image (url)"
+          <ImageField
+            label="image"
             value={block.value}
             onCommit={(value) => setField(`${path}.value`, value)}
           />
@@ -468,8 +554,8 @@ function CasEtudesPanel({ store, activeId }: { store: ContentStore; activeId: st
           value={study.date}
           onCommit={(value) => setField(`cases.${index}.date`, value)}
         />
-        <Field
-          label="vignette (url)"
+        <ImageField
+          label="vignette"
           value={study.thumb}
           onCommit={(value) => setField(`cases.${index}.thumb`, value)}
         />
@@ -609,6 +695,11 @@ function CoupsDeCoeurPanel({ store, activeId }: { store: ContentStore; activeId:
             value={like.link}
             onCommit={(value) => setField(`likes.${index}.link`, value)}
           />
+          <ImageField
+            label="visuel"
+            value={like.image}
+            onCommit={(value) => setField(`likes.${index}.image`, value)}
+          />
         </Card>
       ))}
 
@@ -632,6 +723,218 @@ function CoupsDeCoeurPanel({ store, activeId }: { store: ContentStore; activeId:
         ajouter un coup de cœur
       </Button>
     </Group>
+  );
+}
+
+/* ---------------------------------------------------------------- migration */
+
+/** Every dotted path in the content that holds an image URL. */
+function imagePaths(content: ContentStore["content"]): { path: string; url: string }[] {
+  const found: { path: string; url: string }[] = [];
+
+  if (content.profile.heroImage) {
+    found.push({ path: "profile.heroImage", url: content.profile.heroImage });
+  }
+  content.cases.forEach((study, i) => {
+    if (study.thumb) found.push({ path: `cases.${i}.thumb`, url: study.thumb });
+    study.blocks.forEach((block, b) => {
+      if (block.type === "image" && block.value) {
+        found.push({ path: `cases.${i}.blocks.${b}.value`, url: block.value });
+      }
+    });
+  });
+  content.likes.forEach((like, i) => {
+    if (like.image) found.push({ path: `likes.${i}.image`, url: like.image });
+  });
+
+  return found;
+}
+
+/**
+ * Moves the images that Vite bundles into Supabase Storage.
+ *
+ * This has to happen in the browser, not in a Node script: the URLs in the
+ * content are Vite's hashed asset paths, which only resolve against the
+ * running app. Fetching them here turns each one into a blob we can upload,
+ * and the resulting Storage URL is stable across rebuilds — which the hashed
+ * path is not, and that is precisely why the migration is needed at all.
+ */
+function MigrateImages({ store }: { store: ContentStore }) {
+  const { content, setField, adminEmail } = store;
+  const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
+
+  const pending = imagePaths(content).filter(({ url }) => !url.startsWith("http"));
+  if (!adminEmail) return null;
+
+  if (pending.length === 0) {
+    return (
+      <p className="text-[12px] leading-snug text-fg-faint">
+        Toutes les images sont déjà hébergées sur Supabase.
+      </p>
+    );
+  }
+
+  const run = async () => {
+    setRunning(true);
+    let done = 0;
+    let failed = 0;
+
+    for (const { path, url } of pending) {
+      setProgress(`${done + failed + 1} / ${pending.length}`);
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(String(response.status));
+        const blob = await response.blob();
+        const name = url.split("/").pop() ?? "image";
+        setField(path, await uploadImage(new File([blob], name, { type: blob.type })));
+        done += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+
+    setProgress(`${done} migrée(s)${failed ? `, ${failed} en échec` : ""}. Pensez à publier.`);
+    setRunning(false);
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-[12px] leading-snug text-fg-faint">
+        {pending.length} image(s) sont encore servies depuis le bundle. Leur URL
+        change à chaque déploiement : déplacez-les vers Supabase pour la figer.
+      </p>
+      <Button size="sm" variant="ghost" disabled={running} onClick={() => void run()}>
+        <CloudUpload size={14} strokeWidth={1.75} aria-hidden="true" />
+        {running ? `migration… ${progress}` : "migrer les images"}
+      </Button>
+      {!running && progress && (
+        <p aria-live="polite" className="text-[11px] text-fg-muted">
+          {progress}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------- publication */
+
+/**
+ * Sign-in and publish controls.
+ *
+ * Edits always land in `localStorage` first — that is the draft. Publishing is
+ * a separate, deliberate act that writes the document to Supabase, where every
+ * visitor reads it. Without a configured project the whole bar collapses to
+ * the export button, and the CMS behaves exactly as it did before.
+ */
+function PublishBar({ store }: { store: ContentStore }) {
+  const {
+    remoteEnabled,
+    adminEmail,
+    dirty,
+    publishState,
+    publishError,
+    publish,
+    discardDraft,
+    signIn,
+    signOut,
+  } = store;
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  if (!remoteEnabled) {
+    return (
+      <p className="w-full font-mono text-[11px] leading-snug text-fg-subtle">
+        Stockage local uniquement. Renseignez VITE_SUPABASE_URL et
+        VITE_SUPABASE_ANON_KEY pour publier en ligne.
+      </p>
+    );
+  }
+
+  if (!adminEmail) {
+    return (
+      <form
+        className="flex w-full flex-col gap-2"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          setBusy(true);
+          setAuthError(null);
+          try {
+            await signIn(email, password);
+          } catch (error) {
+            setAuthError(error instanceof Error ? error.message : String(error));
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        <input
+          type="email"
+          value={email}
+          required
+          placeholder="adresse"
+          autoComplete="username"
+          onChange={(event) => setEmail(event.target.value)}
+          className="w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-[16px] outline-none focus:border-accent sm:text-sm"
+        />
+        <input
+          type="password"
+          value={password}
+          required
+          placeholder="mot de passe"
+          autoComplete="current-password"
+          onChange={(event) => setPassword(event.target.value)}
+          className="w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-[16px] outline-none focus:border-accent sm:text-sm"
+        />
+        <Button size="sm" variant="primary" type="submit" disabled={busy}>
+          {busy ? "connexion…" : "se connecter"}
+        </Button>
+        {authError && <p className="text-[11px] text-red-700">{authError}</p>}
+      </form>
+    );
+  }
+
+  return (
+    <div className="flex w-full flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          size="sm"
+          variant="primary"
+          disabled={!dirty || publishState === "publishing"}
+          onClick={() => void publish()}
+        >
+          <CloudUpload size={14} strokeWidth={1.75} aria-hidden="true" />
+          {publishState === "publishing" ? "publication…" : "publier"}
+        </Button>
+
+        {dirty && (
+          <Button size="sm" variant="ghost" onClick={discardDraft}>
+            annuler le brouillon
+          </Button>
+        )}
+
+        <IconButton
+          label="Se déconnecter"
+          className="ml-auto size-8 border-transparent bg-transparent sm:size-8"
+          onClick={() => void signOut()}
+        >
+          <LogOut size={14} strokeWidth={1.75} aria-hidden="true" />
+        </IconButton>
+      </div>
+
+      <p aria-live="polite" className="font-mono text-[11px] leading-snug text-fg-subtle">
+        {publishState === "error"
+          ? `Échec : ${publishError}`
+          : publishState === "done"
+            ? "Publié. Tout le monde voit cette version."
+            : dirty
+              ? "Brouillon local non publié."
+              : `En ligne · ${adminEmail}`}
+      </p>
+    </div>
   );
 }
 
@@ -692,6 +995,12 @@ export function AdminDrawer({
         {section === "coups-de-coeur" && (
           <CoupsDeCoeurPanel store={store} activeId={activeLikeId} />
         )}
+
+        {store.remoteEnabled && (
+          <Group title="Hébergement des images" open={false}>
+            <MigrateImages store={store} />
+          </Group>
+        )}
       </div>
 
       <footer className="flex flex-wrap items-center gap-2 border-t border-line px-5 py-4">
@@ -723,11 +1032,15 @@ export function AdminDrawer({
           </Button>
         )}
 
-        <p aria-live="polite" className="w-full font-mono text-[11px] text-fg-subtle">
-          {confirmingReset
-            ? "Tout le contenu modifié sera perdu."
-            : "Ctrl/⌘ + A pour fermer"}
-        </p>
+        {confirmingReset && (
+          <p aria-live="polite" className="w-full font-mono text-[11px] text-fg-subtle">
+            Tout le contenu modifié sera perdu.
+          </p>
+        )}
+
+        <div className="w-full border-t border-line pt-3">
+          <PublishBar store={store} />
+        </div>
       </footer>
     </aside>
   );

@@ -46,14 +46,15 @@ src/
 ├── index.css                Tokens @theme, base, recettes View Transitions
 ├── lib/
 │   ├── content.ts           Modèle de contenu + données réelles
-│   ├── store.tsx            Contexte CMS + persistance localStorage
+│   ├── store.tsx            Contexte CMS, brouillon local + publication
+│   ├── supabase.ts          Client, lecture/publication, upload d’images
 │   ├── router.ts            Routing History API (sans dépendance)
 │   └── view-transition.ts   Wrapper document.startViewTransition
 └── components/
     ├── ui/                  Button, IconButton, Chip, Lightbox, RichText, Signature
     ├── layout/              Header, Footer, SectionNav, Wordmark
     ├── sections/            Accueil, Competences, CasEtudes, CoupsDeCoeur
-    ├── effects/             CursorTrail, AsciiStage → AsciiName (three.js)
+    ├── effects/             CursorTrail, AsciiField, AsciiStage → AsciiPlanet
     └── cms/                 Editable (inline), AdminDrawer
 ```
 
@@ -62,20 +63,56 @@ src/
 - **`CursorTrail`** — traînée de carrés bleus sur un canvas plein écran en
   `pointer-events: none`. Coupée sous `prefers-reduced-motion` et hors
   `(pointer: fine)`, où elle n’a pas de sens.
-- **`AsciiName`** — « GUILHEM TERRIER » voxelisé puis rendu en caractères par
-  `AsciiEffect` de three.js. Le paquet npm de three ne livre pas les polices
-  `typeface.json`, donc la géométrie est obtenue en rastérisant le texte dans
-  un canvas 2D plutôt qu’avec `TextGeometry` : aucun fichier à télécharger.
-  Deux pièges à connaître si vous y touchez :
+- **`AsciiPlanet`** — un globe qui tourne, rendu en caractères par
+  `AsciiEffect` de three.js, glyphes blancs sur le bleu d’accent dans un
+  carré 1:1. La carte terre/mer est générée procéduralement (bruit de valeur
+  sur trois octaves, trame qui boucle en x pour qu’il n’y ait pas de couture) :
+  une vraie texture terrestre pèserait des centaines de kilo-octets pour
+  quelque chose que la conversion ASCII réduit à une dizaine de niveaux.
+  Trois pièges à connaître si vous y touchez :
   - la scène **doit** avoir un fond noir opaque. `AsciiEffect` force
     `brightness = 1` là où `alpha === 0`, donc un renderer en `alpha: true`
     peint tout le cadre avec le caractère le plus dense.
-  - ne pas remplacer sa `font-family` inline : son crénage est calibré sur
-    `courier new` et la grille de caractères se désaligne sinon.
+  - l’éclairage est surtout ambiant. Une lumière directionnelle forte écrase
+    le contraste terre/mer et ne laisse qu’une boule ombrée.
+  - l’océan n’est jamais totalement noir, sinon le disque se dissout au limbe
+    partout où l’eau touche le bord et la sphère cesse de se lire.
+  - ne pas remplacer la `font-family` inline de l’effet : son crénage est
+    calibré sur `courier new` et la grille se désaligne sinon.
 
   Le tout est chargé en `lazy` derrière un `IntersectionObserver`, donc three
-  (~130 ko gzip) n’entre pas dans le bundle initial, et retombe sur du texte
-  plat si WebGL est indisponible.
+  (~130 ko gzip) n’entre pas dans le bundle initial, et retombe sur un glyphe
+  statique si WebGL est indisponible.
+
+## Publication du contenu
+
+Par défaut le CMS écrit dans `localStorage` : c’est un **brouillon local**, il
+ne quitte pas le navigateur. Renseignez `.env.local` à partir de
+`.env.example` pour brancher Supabase et publier pour de vrai.
+
+1. Créez un projet Supabase, puis exécutez `supabase/schema.sql` dans le SQL
+   Editor. Il crée la table `site_content`, le bucket `media`, et les
+   politiques RLS.
+2. Dans Authentication, créez l’utilisateur admin et **désactivez les
+   inscriptions publiques**.
+3. Copiez l’URL du projet et la clé `anon` dans `.env.local`.
+
+La clé `anon` finit dans le bundle, et c’est voulu : elle n’ouvre que la
+lecture. Toute écriture est refusée par la politique RLS tant que la requête
+ne porte pas la session de l’adresse admin. Ne jamais exposer `service_role`,
+qui contourne toutes les politiques.
+
+Dans le panneau, `publier` pousse le document vers Supabase et met le site à
+jour pour tout le monde, sans redéploiement. `annuler le brouillon` revient à
+la dernière version publiée.
+
+### Images
+
+Les images téléversées depuis le CMS vont dans le bucket `media` et reçoivent
+une URL publique **stable**. Celles qui viennent encore de `src/assets` sont
+servies par Vite avec un hash dans le nom, qui change à chaque build : une URL
+de ce type stockée en base casserait au déploiement suivant. Le groupe
+« Hébergement des images » du panneau les déplace vers Supabase en un clic.
 
 ### Routing
 
@@ -111,10 +148,11 @@ Deux façons d’éditer, utilisables en même temps :
 Dans les blocs de texte et le paragraphe du pied de page, les liens s’écrivent
 `[texte affiché](https://url)` et sont rendus par `RichText`.
 
-Le contenu est sauvegardé dans `localStorage` (clé
-`guilhem-portfolio-content-v2`). C’est donc **local à un navigateur** : les
-modifications ne sont pas publiées en ligne. Pour figer un changement dans le
-site, exporter le JSON et reporter les valeurs dans `src/lib/content.ts`.
+Les modifications vont d’abord dans `localStorage` (clé
+`guilhem-portfolio-content-v2`) : c’est un brouillon, local à un navigateur.
+Voir « Publication du contenu » plus haut pour les envoyer en ligne. Sans
+Supabase configuré, la seule voie reste l’export JSON à reporter dans
+`src/lib/content.ts`.
 
 ## Déploiement
 

@@ -3,11 +3,11 @@ import { Suspense, lazy, useEffect, useRef, useState } from "react";
 // three + AsciiEffect is by far the heaviest thing on the site. Splitting it
 // out keeps it off the critical path: the chunk is only fetched once the
 // footer actually scrolls into view.
-const AsciiName = lazy(() => import("./AsciiName"));
+const AsciiPlanet = lazy(() => import("./AsciiPlanet"));
 
 /**
- * Holds the space for the ASCII name and loads the WebGL renderer lazily.
- * The reserved box means the footer never shifts when the chunk lands.
+ * Holds the space for the ASCII planet and loads the WebGL renderer lazily.
+ * The reserved square means the footer never shifts when the chunk lands.
  */
 export function AsciiStage() {
   const ref = useRef<HTMLDivElement>(null);
@@ -37,16 +37,15 @@ export function AsciiStage() {
   }, []);
 
   return (
+    // White glyphs on the accent blue, square — the whole tile is the artwork,
+    // so it carries the colour rather than sitting in a neutral card.
     <div
       ref={ref}
-      className="
-        aspect-4/3 w-full overflow-hidden rounded-lg border border-line
-        bg-bg-subtle text-fg sm:aspect-3/2
-      "
+      className="aspect-square w-full overflow-hidden rounded-lg bg-accent text-white"
     >
       {visible && (
         <Suspense fallback={null}>
-          <AsciiName />
+          <AsciiPlanet />
         </Suspense>
       )}
     </div>

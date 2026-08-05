@@ -38,8 +38,9 @@ export function Footer({ content, admin, setField }: FooterProps) {
               />
             </p>
 
-            {/* The signature is grouped with the paragraph, not with the column,
-                so it hugs the last line instead of drifting to the far edge. */}
+            {/* Grouped with the paragraph rather than the column: `self-end`
+                below then lands on the text's own right edge, not the far side
+                of the layout. */}
             <div className="flex max-w-prose flex-col items-start gap-1">
               {admin ? (
                 <Editable
@@ -57,7 +58,7 @@ export function Footer({ content, admin, setField }: FooterProps) {
                 />
               )}
 
-              <Signature className="w-22 text-fg sm:w-26" />
+              <Signature className="w-22 self-end text-fg sm:w-26" />
             </div>
           </div>
 

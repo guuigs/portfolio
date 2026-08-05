@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.1",
     "@types/three": "^0.185.4",
     "clsx": "^2.1.1",
     "lucide-react": "^0.487.0",
