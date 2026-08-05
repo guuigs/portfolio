@@ -27,7 +27,14 @@ const ROW_ID = "main";
 const TABLE = "site_content";
 const BUCKET = "media";
 
-/** Reads the published content. Returns null when there is nothing to read. */
+/**
+ * Reads the published content. Returns null when the row does not exist yet.
+ *
+ * Throws on a read failure rather than returning null, so callers can tell
+ * "nothing has been published" from "we could not find out". Conflating the
+ * two would let a transient network error look like an empty site, and the
+ * next publish would overwrite content we never managed to read.
+ */
 export async function fetchContent(): Promise<Content | null> {
   if (!supabase) return null;
 
@@ -37,10 +44,7 @@ export async function fetchContent(): Promise<Content | null> {
     .eq("id", ROW_ID)
     .maybeSingle();
 
-  if (error) {
-    console.warn("[supabase] lecture du contenu impossible :", error.message);
-    return null;
-  }
+  if (error) throw new Error(error.message);
   return (data?.data as Content) ?? null;
 }
 

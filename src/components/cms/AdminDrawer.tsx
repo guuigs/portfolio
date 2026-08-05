@@ -827,75 +827,89 @@ function MigrateImages({ store }: { store: ContentStore }) {
  * visitor reads it. Without a configured project the whole bar collapses to
  * the export button, and the CMS behaves exactly as it did before.
  */
-function PublishBar({ store }: { store: ContentStore }) {
-  const {
-    remoteEnabled,
-    adminEmail,
-    dirty,
-    publishState,
-    publishError,
-    publish,
-    discardDraft,
-    signIn,
-    signOut,
-  } = store;
-
+/**
+ * Sign-in, shown at the very top of the panel.
+ *
+ * Not in the footer: signing in is the first thing to do on arrival, and a
+ * control that gates everything else has no business below several screens of
+ * fields you cannot publish yet.
+ */
+function SignInPanel({ store }: { store: ContentStore }) {
+  const { signIn } = store;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  if (!remoteEnabled) {
-    return (
-      <p className="w-full font-mono text-[11px] leading-snug text-fg-subtle">
-        Stockage local uniquement. Renseignez VITE_SUPABASE_URL et
-        VITE_SUPABASE_ANON_KEY pour publier en ligne.
-      </p>
-    );
-  }
+  const input =
+    "w-full rounded-md border border-line-strong bg-surface px-3 py-2 " +
+    "text-[16px] outline-none transition-[border-color] duration-150 " +
+    "focus:border-accent sm:text-sm";
 
-  if (!adminEmail) {
-    return (
-      <form
-        className="flex w-full flex-col gap-2"
-        onSubmit={async (event) => {
-          event.preventDefault();
-          setBusy(true);
-          setAuthError(null);
-          try {
-            await signIn(email, password);
-          } catch (error) {
-            setAuthError(error instanceof Error ? error.message : String(error));
-          } finally {
-            setBusy(false);
-          }
-        }}
-      >
-        <input
-          type="email"
-          value={email}
-          required
-          placeholder="adresse"
-          autoComplete="username"
-          onChange={(event) => setEmail(event.target.value)}
-          className="w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-[16px] outline-none focus:border-accent sm:text-sm"
-        />
-        <input
-          type="password"
-          value={password}
-          required
-          placeholder="mot de passe"
-          autoComplete="current-password"
-          onChange={(event) => setPassword(event.target.value)}
-          className="w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-[16px] outline-none focus:border-accent sm:text-sm"
-        />
-        <Button size="sm" variant="primary" type="submit" disabled={busy}>
-          {busy ? "connexion…" : "se connecter"}
-        </Button>
-        {authError && <p className="text-[11px] text-red-700">{authError}</p>}
-      </form>
-    );
-  }
+  return (
+    <form
+      className="flex flex-col gap-2 border-b border-line py-4"
+      onSubmit={async (event) => {
+        event.preventDefault();
+        setBusy(true);
+        setError(null);
+        try {
+          await signIn(email, password);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : String(err));
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <div className="flex flex-col gap-1">
+        <span className="text-sm font-medium">Connexion</span>
+        <span className="text-[12px] leading-snug text-fg-faint">
+          Vous pouvez modifier sans être connecté, mais publier demande le
+          compte administrateur.
+        </span>
+      </div>
+
+      <input
+        type="email"
+        value={email}
+        required
+        placeholder="adresse"
+        autoComplete="username"
+        onChange={(event) => setEmail(event.target.value)}
+        className={input}
+      />
+      <input
+        type="password"
+        value={password}
+        required
+        placeholder="mot de passe"
+        autoComplete="current-password"
+        onChange={(event) => setPassword(event.target.value)}
+        className={input}
+      />
+      <Button size="sm" variant="primary" type="submit" disabled={busy}>
+        {busy ? "connexion…" : "se connecter"}
+      </Button>
+      {error && <p className="text-[12px] text-red-700">{error}</p>}
+    </form>
+  );
+}
+
+/** Publish controls, in the footer once signed in. */
+function PublishControls({ store }: { store: ContentStore }) {
+  const {
+    dirty,
+    loadingRemote,
+    neverPublished,
+    publishState,
+    publishError,
+    remoteError,
+    publish,
+    discardDraft,
+    signOut,
+    adminEmail,
+  } = store;
 
   return (
     <div className="flex w-full flex-col gap-2">
@@ -903,14 +917,14 @@ function PublishBar({ store }: { store: ContentStore }) {
         <Button
           size="sm"
           variant="primary"
-          disabled={!dirty || publishState === "publishing"}
+          disabled={!dirty || loadingRemote || publishState === "publishing"}
           onClick={() => void publish()}
         >
           <CloudUpload size={14} strokeWidth={1.75} aria-hidden="true" />
           {publishState === "publishing" ? "publication…" : "publier"}
         </Button>
 
-        {dirty && (
+        {dirty && !neverPublished && (
           <Button size="sm" variant="ghost" onClick={discardDraft}>
             annuler le brouillon
           </Button>
@@ -930,9 +944,15 @@ function PublishBar({ store }: { store: ContentStore }) {
           ? `Échec : ${publishError}`
           : publishState === "done"
             ? "Publié. Tout le monde voit cette version."
-            : dirty
-              ? "Brouillon local non publié."
-              : `En ligne · ${adminEmail}`}
+            : remoteError
+              ? `Version en ligne illisible : ${remoteError}. Publication bloquée tant qu’on ne sait pas ce qu’elle contient.`
+              : loadingRemote
+                ? "Lecture de la version en ligne…"
+                : neverPublished
+                  ? "Rien n’a encore été publié. Le site sert le contenu embarqué."
+                  : dirty
+                    ? "Brouillon local non publié."
+                    : `En ligne · ${adminEmail}`}
       </p>
     </div>
   );
@@ -987,6 +1007,8 @@ export function AdminDrawer({
       </header>
 
       <div className="flex-1 overflow-y-auto overscroll-contain px-5">
+        {store.remoteEnabled && !store.adminEmail && <SignInPanel store={store} />}
+
         {section === "home" && <HomePanel store={store} />}
         {section === "competences" && <CompetencesPanel store={store} />}
         {section === "cas-etudes" && (
@@ -1039,7 +1061,18 @@ export function AdminDrawer({
         )}
 
         <div className="w-full border-t border-line pt-3">
-          <PublishBar store={store} />
+          {!store.remoteEnabled ? (
+            <p className="w-full font-mono text-[11px] leading-snug text-fg-subtle">
+              Stockage local uniquement. Renseignez VITE_SUPABASE_URL et
+              VITE_SUPABASE_ANON_KEY pour publier en ligne.
+            </p>
+          ) : store.adminEmail ? (
+            <PublishControls store={store} />
+          ) : (
+            <p className="w-full font-mono text-[11px] leading-snug text-fg-subtle">
+              Connectez-vous en haut du panneau pour publier.
+            </p>
+          )}
         </div>
       </footer>
     </aside>

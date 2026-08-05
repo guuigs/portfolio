@@ -41,8 +41,14 @@ export interface ContentStore {
   remoteEnabled: boolean;
   /** Email of the signed-in admin, null when signed out. */
   adminEmail: string | null;
-  /** Local edits that differ from what is published. */
+  /** Local edits that differ from what is published — or nothing published yet. */
   dirty: boolean;
+  /** True until the first read of the published content has settled. */
+  loadingRemote: boolean;
+  /** Nothing has ever been published, so the site still serves content.ts. */
+  neverPublished: boolean;
+  /** Why the published content could not be read, if it could not. */
+  remoteError: string | null;
   publishState: PublishState;
   publishError: string | null;
   publish: () => Promise<void>;
@@ -88,6 +94,11 @@ export function ContentProvider({ children }: { children: ReactNode }) {
   // first paint never waits on the network and never flashes empty.
   const [content, setContent] = useState<Content>(() => readLocal() ?? clone(DEFAULT_CONTENT));
   const [published, setPublished] = useState<Content | null>(null);
+  // `published === null` is ambiguous on its own — it means both "not read
+  // yet" and "nothing has ever been published". Keeping them apart is what
+  // lets the very first publish be enabled.
+  const [remoteRead, setRemoteRead] = useState(!isRemoteEnabled);
+  const [remoteError, setRemoteError] = useState<string | null>(null);
   const [adminEmail, setAdminEmail] = useState<string | null>(null);
   const [publishState, setPublishState] = useState<PublishState>("idle");
   const [publishError, setPublishError] = useState<string | null>(null);
@@ -99,10 +110,19 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     void (async () => {
-      const remote = await fetchContent();
-      if (cancelled || !remote) return;
-      setPublished(remote);
-      if (!readLocal()) setContent(remote);
+      try {
+        const remote = await fetchContent();
+        if (cancelled) return;
+        setPublished(remote);
+        setRemoteRead(true);
+        if (remote && !readLocal()) setContent(remote);
+      } catch (error) {
+        if (cancelled) return;
+        // Leave remoteRead false: publishing stays disabled until we have
+        // actually seen what is online, so a failed read can never lead to
+        // overwriting it.
+        setRemoteError(error instanceof Error ? error.message : String(error));
+      }
     })();
 
     return () => {
@@ -201,7 +221,9 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     await remoteSignOut();
   }, []);
 
-  const dirty = published !== null && !same(content, published);
+  // Nothing published yet counts as dirty: otherwise the very first publish
+  // could never be enabled, and the table would stay empty forever.
+  const dirty = remoteRead && (published === null || !same(content, published));
 
   const value = useMemo<ContentStore>(
     () => ({
@@ -214,6 +236,9 @@ export function ContentProvider({ children }: { children: ReactNode }) {
       remoteEnabled: isRemoteEnabled,
       adminEmail,
       dirty,
+      loadingRemote: !remoteRead,
+      neverPublished: remoteRead && published === null,
+      remoteError,
       publishState,
       publishError,
       publish,
@@ -230,6 +255,9 @@ export function ContentProvider({ children }: { children: ReactNode }) {
       exportJSON,
       adminEmail,
       dirty,
+      remoteRead,
+      remoteError,
+      published,
       publishState,
       publishError,
       publish,
