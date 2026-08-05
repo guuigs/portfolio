@@ -35,12 +35,20 @@ create policy "lecture publique"
 drop policy if exists "écriture admin" on public.site_content;
 create policy "écriture admin"
   on public.site_content for all
+  to authenticated
   using (auth.jwt() ->> 'email' = 'guilhemterrier58@gmail.com')
   with check (auth.jwt() ->> 'email' = 'guilhemterrier58@gmail.com');
 
 -- Horodatage automatique, pour savoir quand la dernière publication a eu lieu.
+-- search_path figé : sans lui la fonction résout ses identifiants via le
+-- search_path de l'appelant, que quelqu'un pouvant créer des objets dans un
+-- schéma prioritaire peut détourner.
 create or replace function public.touch_updated_at()
-returns trigger language plpgsql as $$
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
 begin
   new.updated_at = now();
   return new;
@@ -70,6 +78,7 @@ create policy "media lecture publique"
 drop policy if exists "media écriture admin" on storage.objects;
 create policy "media écriture admin"
   on storage.objects for all
+  to authenticated
   using (
     bucket_id = 'media'
     and auth.jwt() ->> 'email' = 'guilhemterrier58@gmail.com'

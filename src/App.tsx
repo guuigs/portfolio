@@ -103,7 +103,7 @@ function Portfolio() {
             sections, so the site reads as one page rather than four. */}
         <div
           className={cn(
-            "mx-auto flex max-w-6xl flex-col items-center px-6 text-center lg:px-10",
+            "gutter-x mx-auto flex max-w-6xl flex-col items-center text-center",
             isHome ? "gap-8 pb-16 pt-20 sm:pt-28" : "gap-6 pb-12 pt-12 sm:pt-16",
           )}
         >
@@ -129,7 +129,7 @@ function Portfolio() {
               value={content.profile.heroIntro}
               onCommit={(value) => setField("profile.heroIntro", value)}
               // Mono, not sans: the brief swapped this one to the terminal voice.
-              className="max-w-xl text-pretty font-mono text-[13px] leading-relaxed tracking-[-0.01em] text-fg-muted sm:text-sm"
+              className="max-w-xl text-pretty font-mono text-[14px] leading-relaxed tracking-[-0.01em] text-fg-muted sm:text-sm"
             />
           )}
 

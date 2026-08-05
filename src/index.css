@@ -150,6 +150,25 @@
 }
 
 @layer utilities {
+  /* Page gutter that also clears a notch. On a phone held sideways the
+     cutout eats into the side of the viewport, and a plain `px-6` would run
+     the wordmark and the nav straight underneath it. */
+  .gutter-x {
+    padding-left: max(1.5rem, env(safe-area-inset-left));
+    padding-right: max(1.5rem, env(safe-area-inset-right));
+  }
+  @media (min-width: 1024px) {
+    .gutter-x {
+      padding-left: max(2.5rem, env(safe-area-inset-left));
+      padding-right: max(2.5rem, env(safe-area-inset-right));
+    }
+  }
+
+  /* Keeps content off the home indicator. */
+  .safe-bottom {
+    padding-bottom: max(var(--safe-bottom-base, 1rem), env(safe-area-inset-bottom));
+  }
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;

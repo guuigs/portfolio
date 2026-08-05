@@ -53,7 +53,7 @@ function ArticleBlock({
             admin={admin}
             value={block.caption ?? ""}
             onCommit={(value) => setField(`${path}.caption`, value)}
-            className="text-[13px] text-fg-subtle"
+            className="text-[14px] text-fg-subtle sm:text-[13px]"
           />
         )}
       </figure>
@@ -100,7 +100,8 @@ function ArticleBlock({
     );
   }
 
-  const proseClass = "max-w-prose text-[15px] leading-relaxed text-fg-muted";
+  const proseClass =
+    "max-w-prose text-[16px] leading-relaxed text-fg-muted sm:text-[15px]";
 
   // In admin the raw string is edited, brackets and all; readers get the
   // parsed links. Same field, two renderings.
@@ -164,13 +165,16 @@ function Carousel({
   cases,
   activeIndex,
   onSelect,
+  onStep,
 }: {
   cases: CaseStudy[];
   activeIndex: number;
   onSelect: (caseId: string) => void;
+  onStep: (delta: number) => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [metrics, setMetrics] = useState<Metrics>(() => measure(1280));
+  const swipe = useRef<{ x: number; y: number } | null>(null);
 
   useLayoutEffect(() => {
     const host = hostRef.current;
@@ -203,8 +207,26 @@ function Carousel({
       ref={hostRef}
       role="group"
       aria-label="Cas d’études"
-      className="carousel-mask relative w-full overflow-hidden"
+      className="carousel-mask relative w-full touch-pan-y overflow-hidden"
       style={{ height }}
+      // The arrows are pointer-only, so without this a phone can just tap the
+      // neighbours — a 63px-wide target for the natural gesture on a carousel.
+      onPointerDown={(event) => {
+        if (event.pointerType === "mouse") return;
+        swipe.current = { x: event.clientX, y: event.clientY };
+      }}
+      onPointerUp={(event) => {
+        const start = swipe.current;
+        swipe.current = null;
+        if (!start) return;
+        const dx = event.clientX - start.x;
+        // Ignore anything that reads as a vertical scroll rather than a swipe.
+        if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(event.clientY - start.y)) return;
+        onStep(dx < 0 ? 1 : -1);
+      }}
+      onPointerCancel={() => {
+        swipe.current = null;
+      }}
     >
       {slots.map(({ key, k, study, duplicate }) => {
         const isActive = k === 0;
@@ -276,7 +298,7 @@ export function CasEtudes({ content, admin, setField, activeId, onSelect }: CasE
   return (
     <section aria-label="Cas d’études" className="flex flex-col gap-12">
       <div className="relative">
-        <Carousel cases={cases} activeIndex={index} onSelect={onSelect} />
+        <Carousel cases={cases} activeIndex={index} onSelect={onSelect} onStep={step} />
 
         <IconButton
           label="Cas d’étude précédent"
@@ -294,10 +316,10 @@ export function CasEtudes({ content, admin, setField, activeId, onSelect }: CasE
         </IconButton>
       </div>
 
-      <article className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 lg:px-10">
+      <article className="gutter-x mx-auto flex w-full max-w-3xl flex-col gap-8">
         <header className="flex flex-col gap-4 border-b border-line pb-8">
           <div className="flex items-center gap-3">
-            <time className="font-mono text-[12px] tracking-tight text-fg-faint">
+            <time className="font-mono text-[13px] tracking-tight text-fg-faint sm:text-[12px]">
               {current.date}
             </time>
             <span aria-hidden="true" className="h-px flex-1 bg-line" />

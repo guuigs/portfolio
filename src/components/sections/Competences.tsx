@@ -47,7 +47,7 @@ function CaseCard({ study, onOpen }: { study: CaseStudy; onOpen: () => void }) {
         />
       </div>
       <div className="flex min-w-0 items-start justify-between gap-1 px-1 pb-1">
-        <span className="min-w-0 truncate text-[13px] font-medium text-fg">
+        <span className="min-w-0 truncate text-[14px] font-medium text-fg sm:text-[13px]">
           {study.shortTitle}
         </span>
         <ArrowUpRight
@@ -125,7 +125,7 @@ function SkillNav({ skills }: { skills: Content["skills"] }) {
 
 export function Competences({ content, admin, setField, onOpenCase }: CompetencesProps) {
   return (
-    <section aria-label="Compétences" className="mx-auto w-full max-w-5xl px-6 lg:px-10">
+    <section aria-label="Compétences" className="gutter-x mx-auto w-full max-w-5xl">
       <div className="grid gap-10 lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-14">
         <SkillNav skills={content.skills} />
 
@@ -157,7 +157,7 @@ export function Competences({ content, admin, setField, onOpenCase }: Competence
                     admin={admin}
                     value={skill.description}
                     onCommit={(value) => setField(`skills.${index}.description`, value)}
-                    className="max-w-prose text-[13px] leading-relaxed text-fg-muted"
+                    className="max-w-prose text-[15px] leading-relaxed text-fg-muted sm:text-[13px]"
                   />
                 </div>
 

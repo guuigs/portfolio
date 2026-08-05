@@ -13,7 +13,7 @@ function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4 border-t border-line py-2.5">
       <dt className="overline">{label}</dt>
-      <dd className="text-right text-[13px] text-fg">{value}</dd>
+      <dd className="text-right text-[14px] text-fg sm:text-[13px]">{value}</dd>
     </div>
   );
 }
@@ -88,8 +88,11 @@ export function Lightbox({ likes, selectedId, onSelect }: LightboxProps) {
       "
     >
       {like && (
-        <div className="grid h-full grid-cols-1 grid-rows-[1fr_auto] sm:grid-cols-[1fr_20rem] sm:grid-rows-1">
-          <div className="relative flex min-h-0 items-center justify-center bg-bg-subtle p-5 sm:p-10">
+        /* On a phone the metadata is `auto`-sized and was taking two thirds of
+           the frame, leaving the image — the whole point — at 173×260. Fixed
+           fractions give the picture the majority and let the panel scroll. */
+        <div className="grid h-full grid-cols-1 grid-rows-[3fr_2fr] sm:grid-cols-[1fr_20rem] sm:grid-rows-1">
+          <div className="relative flex min-h-0 items-center justify-center bg-bg-subtle p-4 sm:p-10">
             <img
               src={like.image}
               alt={like.title}

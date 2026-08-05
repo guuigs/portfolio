@@ -11,9 +11,9 @@ export function Chip({ children, className }: ChipProps) {
     <span
       translate="no"
       className={cn(
-        "inline-flex h-7 shrink-0 items-center whitespace-nowrap rounded-md border",
+        "inline-flex h-8 shrink-0 items-center whitespace-nowrap rounded-md border sm:h-7",
         "border-line bg-bg-subtle px-2.5",
-        "font-mono text-[12px] leading-none tracking-tight text-fg-muted",
+        "font-mono text-[13px] leading-none tracking-tight text-fg-muted sm:text-[12px]",
         className,
       )}
     >

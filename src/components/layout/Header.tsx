@@ -9,7 +9,7 @@ export interface HeaderProps {
 }
 
 const ICON_LINK =
-  "inline-flex size-9 items-center justify-center rounded-md text-fg-muted " +
+  "inline-flex size-11 sm:size-9 items-center justify-center rounded-md text-fg-muted " +
   "transition-[background-color,color] duration-150 ease-out hover:bg-gray-100 hover:text-fg";
 
 export function Header({ socials, onNavigate }: HeaderProps) {
@@ -24,7 +24,7 @@ export function Header({ socials, onNavigate }: HeaderProps) {
       className="sticky top-0 z-50 border-b border-line bg-surface"
     >
       {/* Full-bleed: the bar spans the viewport, only a gutter holds it in. */}
-      <div className="flex h-16 items-center justify-between gap-4 px-6 lg:px-10">
+      <div className="gutter-x flex h-16 items-center justify-between gap-4">
         <a
           href={homeHref}
           onClick={(event) => {
@@ -33,7 +33,7 @@ export function Header({ socials, onNavigate }: HeaderProps) {
             onNavigate(homeHref);
           }}
           className="
-            -ml-1 flex items-center rounded-md px-1 py-1 text-fg
+            -ml-1 flex min-h-11 items-center rounded-md px-1 text-fg sm:min-h-0 sm:py-1
             transition-opacity duration-150 ease-out hover:opacity-70
           "
         >
@@ -68,7 +68,7 @@ export function Header({ socials, onNavigate }: HeaderProps) {
             target="_blank"
             rel="noopener noreferrer"
             className="
-              ml-2 inline-flex h-9 items-center rounded-md border border-line-strong
+              ml-2 inline-flex h-11 items-center rounded-md border border-line-strong sm:h-9
               bg-surface px-3 text-[13px] font-medium text-fg
               transition-[background-color,border-color] duration-150 ease-out
               hover:border-gray-400 hover:bg-bg-subtle

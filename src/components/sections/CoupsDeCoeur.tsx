@@ -40,7 +40,7 @@ export function CoupsDeCoeur({ content, selectedId, onSelect }: CoupsDeCoeurProp
   const likes = useMemo(() => shuffle(content.likes, seed), [content.likes, seed]);
 
   return (
-    <section aria-label="Coups de cœur" className="mx-auto w-full max-w-5xl px-6 lg:px-10">
+    <section aria-label="Coups de cœur" className="gutter-x mx-auto w-full max-w-5xl">
       <div className="mb-4 flex">
         <button
           type="button"

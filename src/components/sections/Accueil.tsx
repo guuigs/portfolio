@@ -13,7 +13,7 @@ export function Accueil({ content }: AccueilProps) {
   const { heroImage, heroTitle } = content.profile;
 
   return (
-    <section aria-label="Visuel" className="mx-auto w-full max-w-5xl px-6 lg:px-10">
+    <section aria-label="Visuel" className="gutter-x mx-auto w-full max-w-5xl">
       {/* No frame and no fill: the visual is meant to sit straight on the page,
           so a transparent PNG reads as part of it rather than inside a card. */}
       {heroImage ? (

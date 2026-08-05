@@ -1003,7 +1003,7 @@ export function AdminDrawer({
         )}
       </div>
 
-      <footer className="flex flex-wrap items-center gap-2 border-t border-line px-5 py-4">
+      <footer className="safe-bottom flex flex-wrap items-center gap-2 border-t border-line px-5 pt-4">
         <Button size="sm" onClick={exportJSON}>
           <Download size={14} strokeWidth={1.75} aria-hidden="true" />
           exporter
