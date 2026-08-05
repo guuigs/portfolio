@@ -26,6 +26,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Sans les secrets, le build réussit quand même et le site se déploie —
+      # simplement amputé de Supabase, donc figé sur le contenu embarqué et
+      # sans publication possible. C'est exactement le genre de panne qui ne
+      # se voit pas : on la remonte ici plutôt que de la découvrir en ligne.
+      - name: Vérifier les secrets Supabase
+        run: |
+          if [ -z "${{ secrets.VITE_SUPABASE_URL }}" ] || [ -z "${{ secrets.VITE_SUPABASE_ANON_KEY }}" ]; then
+            echo "::warning title=Supabase absent::VITE_SUPABASE_URL ou VITE_SUPABASE_ANON_KEY manque. Le site sera déployé sans CMS distant : contenu figé sur src/lib/content.ts."
+          else
+            echo "Secrets Supabase présents."
+          fi
+
       # Vite inlines VITE_* at build time, so these have to exist here — not
       # on the server. Absent, the site still builds and runs; the CMS simply
       # stays local instead of publishing.
