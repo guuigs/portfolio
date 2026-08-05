@@ -93,3 +93,44 @@ create policy "media écriture admin"
 -- Dans Authentication → Sign In / Providers, désactivez « Allow new users to
 -- sign up ». Les politiques ci-dessus filtrent déjà par adresse, mais fermer
 -- les inscriptions retire complètement la surface.
+
+-- ------------------------------------------------- fermeture des inscriptions
+--
+-- Le réglage « Allow new users to sign up » du dashboard change de place au
+-- fil des versions. Ce verrou-ci vit dans le schéma versionné et ne peut pas
+-- être défait par mégarde en cliquant ailleurs.
+--
+-- Ce n'est PAS la protection principale : les politiques ci-dessus refusent
+-- déjà toute écriture à un compte qui n'est pas l'adresse admin. C'est la
+-- couche qui empêche les comptes parasites d'exister.
+
+create or replace function public.reject_foreign_signups()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.email is distinct from 'guilhemterrier58@gmail.com' then
+    raise exception 'Les inscriptions sont fermées sur ce projet.'
+      using errcode = '42501';
+  end if;
+  return new;
+end;
+$$;
+
+-- Une fonction de trigger n'a aucune raison d'être appelable via
+-- /rest/v1/rpc/ ; elle est SECURITY DEFINER, donc l'exposer serait offrir une
+-- porte inutile. Seul le rôle sous lequel GoTrue insère les comptes en a
+-- besoin — sans ce grant, le trigger échouerait sur un « permission denied »
+-- au lieu du refus explicite.
+revoke all on function public.reject_foreign_signups() from public, anon, authenticated;
+grant execute on function public.reject_foreign_signups() to supabase_auth_admin;
+
+drop trigger if exists reject_foreign_signups on auth.users;
+create trigger reject_foreign_signups
+  before insert on auth.users
+  for each row execute function public.reject_foreign_signups();
+
+-- Pour rouvrir les inscriptions plus tard :
+--   drop trigger reject_foreign_signups on auth.users;
