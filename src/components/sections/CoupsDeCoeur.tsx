@@ -32,13 +32,12 @@ function shuffle(items: Like[], seed: number): Like[] {
 }
 
 export function CoupsDeCoeur({ content, selectedId, onSelect }: CoupsDeCoeurProps) {
-  // null keeps the authored order; any number is a reshuffle.
-  const [seed, setSeed] = useState<number | null>(null);
+  // Seeded on mount, so every visit to the section deals a new hand. The
+  // seed is kept rather than reshuffling per render, otherwise the grid would
+  // reorder itself on any unrelated state change.
+  const [seed, setSeed] = useState(() => Math.floor(Math.random() * 2 ** 31));
 
-  const likes = useMemo(
-    () => (seed === null ? content.likes : shuffle(content.likes, seed)),
-    [content.likes, seed],
-  );
+  const likes = useMemo(() => shuffle(content.likes, seed), [content.likes, seed]);
 
   return (
     <section aria-label="Coups de cœur" className="mx-auto w-full max-w-5xl px-6 lg:px-10">

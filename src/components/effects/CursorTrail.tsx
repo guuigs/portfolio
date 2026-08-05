@@ -8,9 +8,9 @@ interface Square {
   spin: number;
 }
 
-const LIFE = 620; // ms a square stays visible
-const SPACING = 22; // px of travel between two spawns
-const MAX = 60; // hard cap, so a fast sweep can't flood the buffer
+const LIFE = 720; // ms a square stays visible
+const SPACING = 15; // px of travel between two spawns
+const MAX = 90; // hard cap, so a fast sweep can't flood the buffer
 
 /**
  * A trail of small blue squares that follows the pointer and fades out once
@@ -116,6 +116,7 @@ export function CursorTrail() {
     <canvas
       ref={canvasRef}
       aria-hidden="true"
+      data-effect="cursor-trail"
       className="pointer-events-none fixed inset-0 z-[150]"
     />
   );

@@ -9,6 +9,7 @@ import { CoupsDeCoeur } from "@/components/sections/CoupsDeCoeur";
 import { AdminDrawer } from "@/components/cms/AdminDrawer";
 import { Editable } from "@/components/cms/Editable";
 import { CursorTrail } from "@/components/effects/CursorTrail";
+import { AsciiField } from "@/components/effects/AsciiField";
 import { ContentProvider, useContentStore } from "@/lib/store";
 import { hrefFor, useRoute } from "@/lib/router";
 import { withViewTransition } from "@/lib/view-transition";
@@ -174,9 +175,12 @@ function Portfolio() {
 
       <Footer content={content} admin={admin} setField={setField} />
 
+      {isHome && <AsciiField />}
       <CursorTrail />
 
-      {admin ? (
+      {/* No visible affordance for the admin shortcut: it is deliberately
+          undiscoverable, so visitors never stumble into editing mode. */}
+      {admin && (
         <AdminDrawer
           store={store}
           section={route.section}
@@ -184,20 +188,6 @@ function Portfolio() {
           activeLikeId={route.item}
           onClose={() => setAdmin(false)}
         />
-      ) : (
-        <button
-          type="button"
-          onClick={() => setAdmin(true)}
-          className="
-            fixed bottom-4 right-4 z-40 inline-flex h-8 items-center gap-1.5 rounded-md
-            border border-line-strong bg-surface/90 px-3 font-mono text-[11px]
-            text-fg-subtle opacity-60 backdrop-blur-sm
-            transition-[opacity,border-color] duration-150 ease-out
-            hover:border-gray-400 hover:opacity-100
-          "
-        >
-          ⌘/Ctrl&nbsp;+&nbsp;A · admin
-        </button>
       )}
     </div>
   );

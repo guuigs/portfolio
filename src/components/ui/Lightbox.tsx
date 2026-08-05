@@ -78,19 +78,22 @@ export function Lightbox({ likes, selectedId, onSelect }: LightboxProps) {
         // Clicking the backdrop (the dialog element itself) dismisses.
         if (event.target === dialogRef.current) dialogRef.current?.close();
       }}
+      // A fixed frame, not one that fits its content: the collection mixes
+      // portrait book covers with square sleeves, and sizing to each image
+      // made the dialog jump on every step through it.
       className="
-        m-auto max-h-[90vh] w-[min(64rem,94vw)] overscroll-contain
+        m-auto h-[92dvh] w-[min(60rem,94vw)] overflow-hidden overscroll-contain
         rounded-xl border border-line bg-surface p-0 text-fg shadow-lg
         backdrop:bg-gray-900/60 backdrop:backdrop-blur-[3px]
       "
     >
       {like && (
-        <div className="grid max-h-[90vh] grid-cols-1 sm:grid-cols-[1fr_19rem]">
-          <div className="relative flex items-center justify-center bg-bg-subtle p-5 sm:p-8">
+        <div className="grid h-full grid-cols-1 grid-rows-[1fr_auto] sm:grid-cols-[1fr_20rem] sm:grid-rows-1">
+          <div className="relative flex min-h-0 items-center justify-center bg-bg-subtle p-5 sm:p-10">
             <img
               src={like.image}
               alt={like.title}
-              className="max-h-[40vh] w-auto rounded-md object-contain shadow-md sm:max-h-[74vh]"
+              className="max-h-full max-w-full rounded-md object-contain shadow-md"
             />
 
             <div className="absolute inset-x-4 bottom-4 flex items-center justify-between sm:inset-x-5 sm:bottom-5">

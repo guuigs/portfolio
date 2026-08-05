@@ -38,24 +38,27 @@ export function Footer({ content, admin, setField }: FooterProps) {
               />
             </p>
 
-            {admin ? (
-              <Editable
-                as="p"
-                multiline
-                admin
-                value={profile.footerBody}
-                onCommit={(value) => setField("profile.footerBody", value)}
-                className="max-w-prose text-[15px] leading-relaxed text-fg-muted"
-              />
-            ) : (
-              <RichText
-                value={profile.footerBody}
-                className="max-w-prose text-[15px] leading-relaxed text-fg-muted"
-              />
-            )}
+            {/* The signature is grouped with the paragraph, not with the column,
+                so it hugs the last line instead of drifting to the far edge. */}
+            <div className="flex max-w-prose flex-col items-start gap-1">
+              {admin ? (
+                <Editable
+                  as="p"
+                  multiline
+                  admin
+                  value={profile.footerBody}
+                  onCommit={(value) => setField("profile.footerBody", value)}
+                  className="text-[15px] leading-relaxed text-fg-muted"
+                />
+              ) : (
+                <RichText
+                  value={profile.footerBody}
+                  className="text-[15px] leading-relaxed text-fg-muted"
+                />
+              )}
 
-            {/* Pinned to the bottom-right of the copy, the way a letter is signed. */}
-            <Signature className="mt-1 w-22 self-end text-fg sm:w-26" />
+              <Signature className="w-22 text-fg sm:w-26" />
+            </div>
           </div>
 
           <AsciiStage />
