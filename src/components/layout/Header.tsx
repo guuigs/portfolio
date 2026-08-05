@@ -19,10 +19,9 @@ export function Header({ socials, onNavigate }: HeaderProps) {
     <header
       // Pinned above the view-transition snapshots so it never flickers.
       style={{ viewTransitionName: "site-header" }}
-      className="
-        sticky top-0 z-50 border-b border-line
-        bg-bg/80 backdrop-blur-md backdrop-saturate-150
-      "
+      // Opaque white rather than a translucent blur: the background ASCII
+      // field scrolls underneath, and a frosted bar just smeared it.
+      className="sticky top-0 z-50 border-b border-line bg-surface"
     >
       {/* Full-bleed: the bar spans the viewport, only a gutter holds it in. */}
       <div className="flex h-16 items-center justify-between gap-4 px-6 lg:px-10">
