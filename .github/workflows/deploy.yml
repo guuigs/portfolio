@@ -9,15 +9,22 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
+      # Node 20 minimum : @tailwindcss/oxide, la partie native de Tailwind v4,
+      # ne publie pas de binaire pour Node 18. Sur 18, npm passe l'installation
+      # du binding en EBADENGINE puis le build meurt sur « Cannot find native
+      # binding » — ce qui ressemble à un bug npm mais n'est que la version.
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
+          cache: npm
 
+      # ci plutôt qu'install : respecte le lock à la lettre, et évite justement
+      # la résolution partielle des dépendances optionnelles.
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       # Vite inlines VITE_* at build time, so these have to exist here — not
       # on the server. Absent, the site still builds and runs; the CMS simply
