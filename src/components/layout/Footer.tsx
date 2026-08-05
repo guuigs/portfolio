@@ -1,5 +1,8 @@
 import type { Content } from "@/lib/content";
 import { Editable } from "@/components/cms/Editable";
+import { RichText } from "@/components/ui/RichText";
+import { Signature } from "@/components/ui/Signature";
+import { AsciiStage } from "@/components/effects/AsciiStage";
 
 export interface FooterProps {
   content: Content;
@@ -8,7 +11,7 @@ export interface FooterProps {
 }
 
 export function Footer({ content, admin, setField }: FooterProps) {
-  const { profile, socials } = content;
+  const { profile } = content;
   const year = new Date().getFullYear();
 
   return (
@@ -16,50 +19,51 @@ export function Footer({ content, admin, setField }: FooterProps) {
       style={{ viewTransitionName: "site-footer" }}
       className="mt-24 border-t border-line"
     >
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 lg:px-10">
-        <p className="max-w-md text-lg tracking-[-0.02em] text-fg">
-          <Editable
-            admin={admin}
-            value={profile.footerName}
-            onCommit={(value) => setField("profile.footerName", value)}
-          />{" "}
-          <Editable
-            admin={admin}
-            value={profile.footerLine}
-            onCommit={(value) => setField("profile.footerLine", value)}
-            className="text-fg-faint"
-          />
-        </p>
+      {/* Full-bleed, like the header: only a gutter, no centred container. */}
+      <div className="flex flex-col gap-10 px-6 py-14 lg:px-10">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,26rem)] lg:gap-16">
+          <div className="flex flex-col gap-6">
+            <p className="text-lg tracking-[-0.02em] text-fg">
+              <Editable
+                admin={admin}
+                value={profile.footerName}
+                onCommit={(value) => setField("profile.footerName", value)}
+                className="font-semibold"
+              />{" "}
+              <Editable
+                admin={admin}
+                value={profile.footerLine}
+                onCommit={(value) => setField("profile.footerLine", value)}
+                className="text-fg-faint"
+              />
+            </p>
 
-        <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-t border-line pt-8">
-          <p className="font-mono text-[12px] text-fg-subtle">
-            © {year} {profile.name}
-          </p>
+            {admin ? (
+              <Editable
+                as="p"
+                multiline
+                admin
+                value={profile.footerBody}
+                onCommit={(value) => setField("profile.footerBody", value)}
+                className="max-w-prose text-[15px] leading-relaxed text-fg-muted"
+              />
+            ) : (
+              <RichText
+                value={profile.footerBody}
+                className="max-w-prose text-[15px] leading-relaxed text-fg-muted"
+              />
+            )}
 
-          <nav aria-label="Liens de pied de page" className="flex items-center gap-6 text-sm">
-            <a
-              href={socials.cv}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-fg-muted transition-colors duration-150 hover:text-fg"
-            >
-              mon cv
-            </a>
-            <a
-              href={socials.linkedin}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-fg-muted transition-colors duration-150 hover:text-fg"
-            >
-              linkedin
-            </a>
-            <a
-              href={socials.mail}
-              className="text-fg-muted transition-colors duration-150 hover:text-fg"
-            >
-              mail
-            </a>
-          </nav>
+            {/* Pinned to the bottom-right of the copy, the way a letter is signed. */}
+            <Signature className="mt-1 w-22 self-end text-fg sm:w-26" />
+          </div>
+
+          <AsciiStage />
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-t border-line pt-8">
+          <p className="font-mono text-[12px] text-fg-subtle">@ {year}</p>
+          <p className="font-mono text-[12px] text-fg-subtle">{profile.name}</p>
         </div>
       </div>
     </footer>

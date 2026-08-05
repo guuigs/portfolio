@@ -8,6 +8,7 @@ import { CasEtudes } from "@/components/sections/CasEtudes";
 import { CoupsDeCoeur } from "@/components/sections/CoupsDeCoeur";
 import { AdminDrawer } from "@/components/cms/AdminDrawer";
 import { Editable } from "@/components/cms/Editable";
+import { CursorTrail } from "@/components/effects/CursorTrail";
 import { ContentProvider, useContentStore } from "@/lib/store";
 import { hrefFor, useRoute } from "@/lib/router";
 import { withViewTransition } from "@/lib/view-transition";
@@ -105,8 +106,6 @@ function Portfolio() {
             isHome ? "gap-8 pb-16 pt-20 sm:pt-28" : "gap-6 pb-12 pt-12 sm:pt-16",
           )}
         >
-          {isHome && <p className="overline">{content.profile.role}</p>}
-
           <Editable
             as="h1"
             admin={admin}
@@ -128,7 +127,8 @@ function Portfolio() {
               admin={admin}
               value={content.profile.heroIntro}
               onCommit={(value) => setField("profile.heroIntro", value)}
-              className="max-w-xl text-balance text-base leading-relaxed text-fg-muted sm:text-lg"
+              // Mono, not sans: the brief swapped this one to the terminal voice.
+              className="max-w-xl text-pretty font-mono text-[13px] leading-relaxed tracking-[-0.01em] text-fg-muted sm:text-sm"
             />
           )}
 
@@ -174,8 +174,16 @@ function Portfolio() {
 
       <Footer content={content} admin={admin} setField={setField} />
 
+      <CursorTrail />
+
       {admin ? (
-        <AdminDrawer store={store} onClose={() => setAdmin(false)} />
+        <AdminDrawer
+          store={store}
+          section={route.section}
+          activeCaseId={activeCaseId}
+          activeLikeId={route.item}
+          onClose={() => setAdmin(false)}
+        />
       ) : (
         <button
           type="button"

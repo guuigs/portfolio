@@ -38,12 +38,14 @@ export function SectionNav({ active, onNavigate }: SectionNavProps) {
               onNavigate(href);
             }}
             className={cn(
-              "inline-flex h-11 items-center justify-center rounded-md border px-5 sm:h-10",
-              "text-sm font-medium sm:w-44",
-              "transition-[background-color,border-color,color] duration-150 ease-out",
+              // Vercel sizing: 36px tall, sized to its label, 6px radius.
+              // 44px on touch so the target stays thumb-sized.
+              "inline-flex h-11 items-center justify-center rounded-md border px-4 sm:h-9",
+              "text-[13px] font-medium",
+              "transition-[background-color,border-color,color,box-shadow] duration-150 ease-out",
               isActive
-                ? "border-gray-900 bg-gray-900 text-white hover:bg-gray-800"
-                : "border-line-strong bg-surface text-fg-muted hover:border-gray-400 hover:bg-bg-subtle hover:text-fg",
+                ? "border-gray-900 bg-gray-900 text-white shadow-xs hover:bg-gray-800"
+                : "border-line-strong bg-surface text-fg-muted shadow-xs hover:border-gray-400 hover:bg-bg-subtle hover:text-fg",
             )}
           >
             {item.label}

@@ -172,6 +172,85 @@
     text-transform: uppercase;
     color: var(--color-fg-faint);
   }
+
+  /* Same role as .overline, in the sans face. Used where the brief asked to
+     move a label off the terminal voice. */
+  .overline-sans {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-fg-faint);
+  }
+
+  /* The carousel runs past both edges of the viewport; fade rather than cut. */
+  .carousel-mask {
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 12%,
+      #000 88%,
+      transparent 100%
+    );
+  }
+
+  /* Inline links inside body copy. Underline sits clear of the descenders
+     and thickens on hover, so the state change doesn't move any text. */
+  .prose-link {
+    color: var(--color-fg);
+    font-weight: 500;
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    transition:
+      color 150ms ease-out,
+      text-decoration-thickness 150ms ease-out;
+  }
+  .prose-link:hover {
+    color: var(--color-accent);
+    text-decoration-thickness: 2px;
+  }
+
+  /* AsciiEffect calibrates its letter-spacing against 'courier new' at a
+     computed font-size, so its inline font stack is left alone — swapping in
+     Geist Mono desynchronises the character grid from the image width. */
+  .ascii-stage {
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+  }
+  .ascii-stage table {
+    border-collapse: collapse;
+  }
+}
+
+/* The signature draws itself once. Each path carries pathLength="1", so a
+   single dash length works for strokes of very different real lengths. */
+@keyframes signature-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+.signature-draw path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: signature-draw 1.4s var(--ease-out-quint) forwards;
+}
+.signature-draw path:nth-child(2) {
+  animation-delay: 0.5s;
+}
+.signature-draw path:nth-child(3) {
+  animation-delay: 0.9s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signature-draw path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
 }
 
 /* ============================================================

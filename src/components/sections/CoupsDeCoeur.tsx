@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
+import { Dices } from "lucide-react";
 import type { Content, Like } from "@/lib/content";
-import { cn } from "@/lib/utils";
 import { Lightbox } from "@/components/ui/Lightbox";
 
 export interface CoupsDeCoeurProps {
@@ -9,88 +9,91 @@ export interface CoupsDeCoeurProps {
   onSelect: (likeId: string | null) => void;
 }
 
-const ALL = "tout";
+/** Small deterministic PRNG, so a given seed always yields the same layout. */
+function mulberry32(seed: number): () => number {
+  let a = seed;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function shuffle(items: Like[], seed: number): Like[] {
+  const random = mulberry32(seed);
+  const out = items.slice();
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
 
 export function CoupsDeCoeur({ content, selectedId, onSelect }: CoupsDeCoeurProps) {
-  const [kind, setKind] = useState<string>(ALL);
+  // null keeps the authored order; any number is a reshuffle.
+  const [seed, setSeed] = useState<number | null>(null);
 
-  const kinds = useMemo(
-    () => [ALL, ...Array.from(new Set(content.likes.map((like) => like.kind)))],
-    [content.likes],
+  const likes = useMemo(
+    () => (seed === null ? content.likes : shuffle(content.likes, seed)),
+    [content.likes, seed],
   );
-
-  const visible = useMemo(
-    () => (kind === ALL ? content.likes : content.likes.filter((like) => like.kind === kind)),
-    [content.likes, kind],
-  );
-
-  const selected: Like | null =
-    content.likes.find((like) => like.id === selectedId) ?? null;
 
   return (
     <section aria-label="Coups de cœur" className="mx-auto w-full max-w-5xl px-6 lg:px-10">
-      <div
-        role="group"
-        aria-label="Filtrer par type"
-        className="mb-10 flex flex-wrap justify-center gap-2"
-      >
-        {kinds.map((item) => (
+      <div className="mb-4 flex">
+        <button
+          type="button"
+          onClick={() => setSeed(Math.floor(Math.random() * 2 ** 31))}
+          aria-label="Redistribuer les coups de cœur au hasard"
+          title="Redistribuer au hasard"
+          className="
+            group inline-flex size-11 items-center justify-center rounded-md
+            text-fg-faint transition-colors duration-150 ease-out
+            hover:bg-bg-subtle hover:text-fg sm:size-9
+          "
+        >
+          <Dices
+            size={18}
+            strokeWidth={1.75}
+            aria-hidden="true"
+            className="transition-transform duration-300 ease-out-quint group-hover:-rotate-12 group-active:rotate-90 motion-reduce:transition-none"
+          />
+        </button>
+      </div>
+
+      {/* Pinterest-style masonry — CSS columns, 3 → 2 → 1. */}
+      <div className="columns-2 gap-4 lg:columns-3 [&>*]:mb-4">
+        {likes.map((like) => (
           <button
-            key={item}
+            key={like.id}
             type="button"
-            aria-pressed={kind === item}
-            onClick={() => setKind(item)}
-            className={cn(
-              "inline-flex h-11 items-center rounded-md border px-3 text-[13px] font-medium sm:h-8",
-              "transition-[background-color,border-color,color] duration-150 ease-out",
-              kind === item
-                ? "border-gray-900 bg-gray-900 text-white"
-                : "border-line-strong bg-surface text-fg-muted hover:border-gray-400 hover:bg-bg-subtle hover:text-fg",
-            )}
+            // The card shows the image alone, so the accessible name has to
+            // carry the title — otherwise every button reads as "bouton".
+            aria-label={`${like.title}, ${like.author}`}
+            onClick={() => onSelect(like.id)}
+            className="
+              group block w-full break-inside-avoid overflow-hidden rounded-lg
+              border border-line bg-bg-subtle
+              transition-[border-color,box-shadow] duration-200 ease-out
+              hover:border-line-strong hover:shadow-sm
+            "
           >
-            {item}
+            <div className="overflow-hidden" style={{ aspectRatio: like.ratio }}>
+              <img
+                src={like.image}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="size-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+              />
+            </div>
           </button>
         ))}
       </div>
 
-      {visible.length === 0 ? (
-        <p className="py-16 text-center text-sm text-fg-faint">
-          Rien dans cette catégorie pour le moment.
-        </p>
-      ) : (
-        /* Pinterest-style masonry — CSS columns, 3 → 2 → 1. */
-        <div className="columns-2 gap-4 sm:columns-2 lg:columns-3 [&>*]:mb-4">
-          {visible.map((like) => (
-            <button
-              key={like.id}
-              type="button"
-              onClick={() => onSelect(like.id)}
-              className="
-                group block w-full break-inside-avoid overflow-hidden rounded-lg
-                border border-line bg-surface text-left
-                transition-[border-color,box-shadow] duration-200 ease-out
-                hover:border-line-strong hover:shadow-sm
-              "
-            >
-              <div className="overflow-hidden bg-bg-subtle" style={{ aspectRatio: like.ratio }}>
-                <img
-                  src={like.image}
-                  alt={like.title}
-                  loading="lazy"
-                  decoding="async"
-                  className="size-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
-                />
-              </div>
-              <div className="flex flex-col gap-0.5 border-t border-line px-3 py-2.5">
-                <span className="truncate text-[13px] font-medium text-fg">{like.title}</span>
-                <span className="truncate text-[12px] text-fg-faint">{like.author}</span>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      <Lightbox like={selected} onClose={() => onSelect(null)} />
+      <Lightbox likes={likes} selectedId={selectedId} onSelect={onSelect} />
     </section>
   );
 }

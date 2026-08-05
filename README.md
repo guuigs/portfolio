@@ -23,7 +23,12 @@ En pratique :
   du blanc papier `#fcfcfb` au noir `#1a1917`. Le bleu `#1823ee` — celui du
   logo — est la seule couleur chromatique, et reste rare.
 - **Geist / Geist Mono** partout, sans serif. Titres très resserrés
-  (`-0.045em` sur le hero).
+  (`-0.045em` sur le hero). Les deux faces sont volontairement croisées par
+  rapport à l’usage attendu : le chapô d’accueil est en mono, tandis que les
+  libellés `STACK TECHNIQUE` / `CAS D’ÉTUDES` sont en sans (`.overline-sans`).
+- **Chrome pleine largeur.** Header, footer et carrousel des cas d’études vont
+  bord à bord ; le texte courant garde une mesure lisible via des conteneurs
+  centrés (`max-w-3xl` / `max-w-5xl`).
 - **La bordure fait le travail**, pas l’ombre : hairlines 1px, rayons 6/8/12px,
   ombres quasi nulles et toujours en deux couches (ambiante + directe).
 - **Motion sobre.** Uniquement `transform` et `opacity`, 150–400 ms. Aucune
@@ -45,11 +50,32 @@ src/
 │   ├── router.ts            Routing History API (sans dépendance)
 │   └── view-transition.ts   Wrapper document.startViewTransition
 └── components/
-    ├── ui/                  Button, IconButton, Chip, Lightbox
+    ├── ui/                  Button, IconButton, Chip, Lightbox, RichText, Signature
     ├── layout/              Header, Footer, SectionNav, Wordmark
     ├── sections/            Accueil, Competences, CasEtudes, CoupsDeCoeur
+    ├── effects/             CursorTrail, AsciiStage → AsciiName (three.js)
     └── cms/                 Editable (inline), AdminDrawer
 ```
+
+### Effets
+
+- **`CursorTrail`** — traînée de carrés bleus sur un canvas plein écran en
+  `pointer-events: none`. Coupée sous `prefers-reduced-motion` et hors
+  `(pointer: fine)`, où elle n’a pas de sens.
+- **`AsciiName`** — « GUILHEM TERRIER » voxelisé puis rendu en caractères par
+  `AsciiEffect` de three.js. Le paquet npm de three ne livre pas les polices
+  `typeface.json`, donc la géométrie est obtenue en rastérisant le texte dans
+  un canvas 2D plutôt qu’avec `TextGeometry` : aucun fichier à télécharger.
+  Deux pièges à connaître si vous y touchez :
+  - la scène **doit** avoir un fond noir opaque. `AsciiEffect` force
+    `brightness = 1` là où `alpha === 0`, donc un renderer en `alpha: true`
+    peint tout le cadre avec le caractère le plus dense.
+  - ne pas remplacer sa `font-family` inline : son crénage est calibré sur
+    `courier new` et la grille de caractères se désaligne sinon.
+
+  Le tout est chargé en `lazy` derrière un `IntersectionObserver`, donc three
+  (~130 ko gzip) n’entre pas dans le bundle initial, et retombe sur du texte
+  plat si WebGL est indisponible.
 
 ### Routing
 
@@ -76,8 +102,14 @@ est dans un champ de saisie, pour ne pas voler le « tout sélectionner »).
 Deux façons d’éditer, utilisables en même temps :
 
 - **En ligne** — les textes de la page deviennent modifiables sur place.
-- **Le panneau latéral** — profil, réseaux, compétences, cas d’études et
-  coups de cœur, avec suppression en deux temps et export JSON.
+- **Le panneau latéral** — **cloisonné par section** : il n’affiche que les
+  champs de la section affichée, pas tout le contenu du site. L’en-tête et le
+  pied de page sont rattachés à l’Accueil ; les cas d’études n’exposent que
+  celui sélectionné dans le carrousel, avec un éditeur de blocs (texte /
+  image, réordonnables) ; les coups de cœur sont filtrables par recherche.
+
+Dans les blocs de texte et le paragraphe du pied de page, les liens s’écrivent
+`[texte affiché](https://url)` et sont rendus par `RichText`.
 
 Le contenu est sauvegardé dans `localStorage` (clé
 `guilhem-portfolio-content-v2`). C’est donc **local à un navigateur** : les

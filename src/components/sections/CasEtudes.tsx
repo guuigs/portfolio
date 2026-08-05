@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
 import type { Block, CaseStudy, Content } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import { IconButton } from "@/components/ui/IconButton";
+import { RichText } from "@/components/ui/RichText";
 import { Editable } from "@/components/cms/Editable";
 
 export interface CasEtudesProps {
@@ -12,6 +13,8 @@ export interface CasEtudesProps {
   activeId: string;
   onSelect: (caseId: string) => void;
 }
+
+/* ----------------------------------------------------------------- article */
 
 function ArticleBlock({
   block,
@@ -44,8 +47,14 @@ function ArticleBlock({
             className="size-full object-cover"
           />
         </div>
-        {block.caption && (
-          <figcaption className="text-[13px] text-fg-subtle">{block.caption}</figcaption>
+        {(block.caption || admin) && (
+          <Editable
+            as="figcaption"
+            admin={admin}
+            value={block.caption ?? ""}
+            onCommit={(value) => setField(`${path}.caption`, value)}
+            className="text-[13px] text-fg-subtle"
+          />
         )}
       </figure>
     );
@@ -91,90 +100,200 @@ function ArticleBlock({
     );
   }
 
-  return (
+  const proseClass = "max-w-prose text-[15px] leading-relaxed text-fg-muted";
+
+  // In admin the raw string is edited, brackets and all; readers get the
+  // parsed links. Same field, two renderings.
+  return admin ? (
     <Editable
       as="p"
       multiline
-      admin={admin}
+      admin
       value={block.value}
       onCommit={(value) => setField(`${path}.value`, value)}
-      className="max-w-prose text-[15px] leading-relaxed text-fg-muted"
+      className={proseClass}
     />
+  ) : (
+    <RichText value={block.value} className={proseClass} />
   );
 }
 
+/* ---------------------------------------------------------------- carousel */
+
+interface Metrics {
+  activeW: number;
+  smallW: number;
+  gap: number;
+  /** How many slots to render on each side of the active one. */
+  reach: number;
+}
+
+const RATIO = 3 / 4; // thumbnails are 4:3
+
+function measure(width: number): Metrics {
+  const activeW = Math.round(Math.min(Math.max(width * 0.26, 190), 380));
+  const smallW = activeW / 3;
+  const gap = 14;
+  // Enough slots to run past both edges, so the strip never shows its end.
+  const half = width / 2 + smallW;
+  const stride = smallW + gap;
+  const reach = Math.max(2, Math.ceil((half - activeW / 2 - gap) / stride) + 1);
+  return { activeW, smallW, gap, reach };
+}
+
+/** Centre-to-centre offset of the slot `k` places from the active one. */
+function centerFor(k: number, m: Metrics): number {
+  if (k === 0) return 0;
+  const sign = Math.sign(k);
+  const steps = Math.abs(k);
+  const first = m.activeW / 2 + m.gap + m.smallW / 2;
+  return sign * (first + (steps - 1) * (m.smallW + m.gap));
+}
+
+/**
+ * Full-bleed thumbnail carousel: the selected case sits dead centre at three
+ * times the size of its neighbours, and the strip wraps, so there is no first
+ * or last item.
+ *
+ * Slots are absolutely positioned and moved with `transform` alone — width
+ * and left are layout properties and animating them would force a reflow on
+ * every frame. Each slot keeps the full-size box and the inactive ones are
+ * scaled down to a third instead.
+ */
+function Carousel({
+  cases,
+  activeIndex,
+  onSelect,
+}: {
+  cases: CaseStudy[];
+  activeIndex: number;
+  onSelect: (caseId: string) => void;
+}) {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [metrics, setMetrics] = useState<Metrics>(() => measure(1280));
+
+  useLayoutEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setMetrics(measure(entry.contentRect.width));
+    });
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, []);
+
+  const { activeW, reach } = metrics;
+  const height = Math.round(activeW * RATIO);
+
+  const slots: { key: string; k: number; study: CaseStudy; duplicate: boolean }[] = [];
+  const seen = new Set<string>();
+  for (let k = -reach; k <= reach; k += 1) {
+    const wrapped = ((activeIndex + k) % cases.length + cases.length) % cases.length;
+    const study = cases[wrapped];
+    // With few cases a wide viewport shows the same item more than once —
+    // that is what "infinite" looks like. Only the first copy is exposed to
+    // assistive tech and to the tab order.
+    const duplicate = seen.has(study.id);
+    seen.add(study.id);
+    slots.push({ key: `${k}`, k, study, duplicate });
+  }
+
+  return (
+    <div
+      ref={hostRef}
+      role="group"
+      aria-label="Cas d’études"
+      className="carousel-mask relative w-full overflow-hidden"
+      style={{ height }}
+    >
+      {slots.map(({ key, k, study, duplicate }) => {
+        const isActive = k === 0;
+        return (
+          <button
+            key={key}
+            type="button"
+            tabIndex={isActive || duplicate ? -1 : 0}
+            aria-hidden={duplicate || undefined}
+            aria-current={isActive ? "true" : undefined}
+            aria-label={study.shortTitle}
+            onClick={() => onSelect(study.id)}
+            className={cn(
+              "absolute top-0 overflow-hidden rounded-lg border bg-bg-subtle",
+              "transition-[transform,opacity,border-color] duration-500 ease-out-quint",
+              "motion-reduce:transition-none",
+              isActive
+                ? "z-10 border-line-strong opacity-100 shadow-md"
+                : "z-0 border-line opacity-55 hover:opacity-90",
+            )}
+            style={{
+              width: activeW,
+              height,
+              left: "50%",
+              marginLeft: -activeW / 2,
+              transform: `translate3d(${centerFor(k, metrics)}px, 0, 0) scale(${isActive ? 1 : 1 / 3})`,
+            }}
+          >
+            <img
+              src={study.thumb}
+              alt=""
+              loading={Math.abs(k) <= 1 ? "eager" : "lazy"}
+              decoding="async"
+              className="size-full object-cover"
+            />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ export */
+
 export function CasEtudes({ content, admin, setField, activeId, onSelect }: CasEtudesProps) {
   const { cases } = content;
-  const index = Math.max(
-    0,
-    cases.findIndex((study) => study.id === activeId),
-  );
+  const index = Math.max(0, cases.findIndex((study) => study.id === activeId));
   const current: CaseStudy | undefined = cases[index];
-  const stripRef = useRef<HTMLDivElement>(null);
 
-  // Keep the selected thumbnail in view when navigating with the arrows.
+  const step = (delta: number) => {
+    if (cases.length === 0) return;
+    onSelect(cases[(index + delta + cases.length) % cases.length].id);
+  };
+
+  // ←/→ walk the carousel, as long as the user isn't typing in the CMS.
   useEffect(() => {
-    const strip = stripRef.current;
-    const active = strip?.querySelector<HTMLElement>('[data-active="true"]');
-    active?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
-  }, [activeId]);
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.isContentEditable || target?.closest("input, textarea, dialog")) return;
+      if (event.key === "ArrowLeft") step(-1);
+      if (event.key === "ArrowRight") step(1);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
 
   if (!current) return null;
 
-  const step = (delta: number) => {
-    const next = cases[(index + delta + cases.length) % cases.length];
-    onSelect(next.id);
-  };
-
   return (
     <section aria-label="Cas d’études" className="flex flex-col gap-12">
-      {/* Thumbnail strip — natively swipeable, with arrows for pointer users. */}
-      <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-6 lg:px-10">
-        <IconButton label="Cas d’étude précédent" onClick={() => step(-1)} className="hidden sm:inline-flex">
+      <div className="relative">
+        <Carousel cases={cases} activeIndex={index} onSelect={onSelect} />
+
+        <IconButton
+          label="Cas d’étude précédent"
+          onClick={() => step(-1)}
+          className="absolute left-4 top-1/2 z-20 hidden -translate-y-1/2 bg-surface/90 backdrop-blur-sm sm:inline-flex lg:left-8"
+        >
           <ArrowLeft size={16} strokeWidth={1.75} aria-hidden="true" />
         </IconButton>
-
-        <div ref={stripRef} className="no-scrollbar -mx-1 flex flex-1 gap-3 overflow-x-auto px-1 py-1">
-          {cases.map((study) => {
-            const isActive = study.id === current.id;
-            return (
-              <button
-                key={study.id}
-                type="button"
-                data-active={isActive}
-                aria-current={isActive ? "true" : undefined}
-                onClick={() => onSelect(study.id)}
-                className={cn(
-                  "group relative w-36 shrink-0 overflow-hidden rounded-lg border text-left",
-                  "transition-[border-color,opacity] duration-200 ease-out",
-                  isActive
-                    ? "border-gray-900 opacity-100"
-                    : "border-line opacity-60 hover:border-line-strong hover:opacity-100",
-                )}
-              >
-                <div className="aspect-4/3 overflow-hidden bg-bg-subtle">
-                  <img
-                    src={study.thumb}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    className="size-full object-cover"
-                  />
-                </div>
-                <span className="block truncate border-t border-line bg-surface px-2 py-1.5 text-[12px] font-medium">
-                  {study.shortTitle}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        <IconButton label="Cas d’étude suivant" onClick={() => step(1)} className="hidden sm:inline-flex">
+        <IconButton
+          label="Cas d’étude suivant"
+          onClick={() => step(1)}
+          className="absolute right-4 top-1/2 z-20 hidden -translate-y-1/2 bg-surface/90 backdrop-blur-sm sm:inline-flex lg:right-8"
+        >
           <ArrowRight size={16} strokeWidth={1.75} aria-hidden="true" />
         </IconButton>
       </div>
 
-      {/* Article */}
       <article className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 lg:px-10">
         <header className="flex flex-col gap-4 border-b border-line pb-8">
           <div className="flex items-center gap-3">

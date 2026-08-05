@@ -1,30 +1,53 @@
-import { useEffect, useRef } from "react";
-import { ArrowUpRight, X } from "lucide-react";
+import { useCallback, useEffect, useRef } from "react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, X } from "lucide-react";
 import type { Like } from "@/lib/content";
 import { IconButton } from "./IconButton";
 
 export interface LightboxProps {
-  like: Like | null;
-  onClose: () => void;
+  likes: Like[];
+  selectedId: string | null;
+  onSelect: (likeId: string | null) => void;
+}
+
+function Meta({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 border-t border-line py-2.5">
+      <dt className="overline">{label}</dt>
+      <dd className="text-right text-[13px] text-fg">{value}</dd>
+    </div>
+  );
 }
 
 /**
- * Detail popup for a coup de cœur: the image, with title / author / date /
- * link beside it. Built on native `<dialog>` so focus trapping, Escape and
- * inertness of the page behind come from the platform rather than from us.
+ * Detail view for a coup de cœur.
+ *
+ * The grid deliberately shows images with no captions, so this is the only
+ * place the metadata exists — and it doubles as a browser: arrows and the
+ * ←/→ keys walk the whole collection without going back to the grid.
+ *
+ * Built on native `<dialog>`, so focus trapping, Escape and inertness of the
+ * page behind come from the platform rather than from us.
  */
-export function Lightbox({ like, onClose }: LightboxProps) {
+export function Lightbox({ likes, selectedId, onSelect }: LightboxProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+
+  const index = likes.findIndex((like) => like.id === selectedId);
+  const like = index >= 0 ? likes[index] : null;
+
+  const step = useCallback(
+    (delta: number) => {
+      if (index < 0 || likes.length === 0) return;
+      onSelect(likes[(index + delta + likes.length) % likes.length].id);
+    },
+    [index, likes, onSelect],
+  );
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
 
-    if (like && !dialog.open) {
-      dialog.showModal();
-    } else if (!like && dialog.open) {
-      dialog.close();
-    }
+    if (like && !dialog.open) dialog.showModal();
+    else if (!like && dialog.open) dialog.close();
   }, [like]);
 
   useEffect(() => {
@@ -32,10 +55,20 @@ export function Lightbox({ like, onClose }: LightboxProps) {
     if (!dialog) return;
 
     // Fires for Escape and for programmatic closes alike.
-    const handleClose = () => onClose();
+    const handleClose = () => onSelect(null);
     dialog.addEventListener("close", handleClose);
     return () => dialog.removeEventListener("close", handleClose);
-  }, [onClose]);
+  }, [onSelect]);
+
+  useEffect(() => {
+    if (!like) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "ArrowLeft") step(-1);
+      if (event.key === "ArrowRight") step(1);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [like, step]);
 
   return (
     <dialog
@@ -46,51 +79,71 @@ export function Lightbox({ like, onClose }: LightboxProps) {
         if (event.target === dialogRef.current) dialogRef.current?.close();
       }}
       className="
-        m-auto max-h-[88vh] w-[min(56rem,92vw)] overscroll-contain
+        m-auto max-h-[90vh] w-[min(64rem,94vw)] overscroll-contain
         rounded-xl border border-line bg-surface p-0 text-fg shadow-lg
-        backdrop:bg-gray-900/50 backdrop:backdrop-blur-[2px]
+        backdrop:bg-gray-900/60 backdrop:backdrop-blur-[3px]
       "
     >
       {like && (
-        <div className="grid max-h-[88vh] grid-cols-1 sm:grid-cols-[1.4fr_1fr]">
-          <div className="flex items-center justify-center overflow-hidden bg-bg-subtle p-4 sm:p-6">
+        <div className="grid max-h-[90vh] grid-cols-1 sm:grid-cols-[1fr_19rem]">
+          <div className="relative flex items-center justify-center bg-bg-subtle p-5 sm:p-8">
             <img
               src={like.image}
               alt={like.title}
-              className="max-h-[42vh] w-auto rounded-md object-contain sm:max-h-[76vh]"
+              className="max-h-[40vh] w-auto rounded-md object-contain shadow-md sm:max-h-[74vh]"
             />
+
+            <div className="absolute inset-x-4 bottom-4 flex items-center justify-between sm:inset-x-5 sm:bottom-5">
+              <IconButton
+                label="Précédent"
+                onClick={() => step(-1)}
+                className="bg-surface/90 backdrop-blur-sm"
+              >
+                <ArrowLeft size={16} strokeWidth={1.75} aria-hidden="true" />
+              </IconButton>
+              <span className="rounded-md bg-surface/90 px-2.5 py-1 font-mono text-[11px] text-fg-subtle backdrop-blur-sm">
+                {index + 1} / {likes.length}
+              </span>
+              <IconButton
+                label="Suivant"
+                onClick={() => step(1)}
+                className="bg-surface/90 backdrop-blur-sm"
+              >
+                <ArrowRight size={16} strokeWidth={1.75} aria-hidden="true" />
+              </IconButton>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-5 overflow-y-auto border-t border-line p-6 sm:border-l sm:border-t-0 sm:p-8">
-            <div className="flex items-start justify-between gap-4">
-              <span className="overline">{like.kind}</span>
+          <div className="flex flex-col gap-5 overflow-y-auto border-t border-line p-6 sm:border-l sm:border-t-0 sm:p-7">
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="text-xl tracking-[-0.03em]">{like.title}</h2>
               <IconButton
                 label="Fermer"
-                className="-mr-2 -mt-2 size-8 border-transparent bg-transparent"
+                className="-mr-2 -mt-1 size-8 shrink-0 border-transparent bg-transparent"
                 onClick={() => dialogRef.current?.close()}
               >
                 <X size={16} strokeWidth={1.75} aria-hidden="true" />
               </IconButton>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <h2 className="text-2xl tracking-[-0.03em]">{like.title}</h2>
-              <p className="text-sm text-fg-muted">{like.author}</p>
-              <time className="text-sm text-fg-subtle">{like.date}</time>
-            </div>
+            <dl className="flex flex-col border-b border-line">
+              <Meta label="auteur" value={like.author} />
+              <Meta label="type" value={like.kind} />
+              <Meta label="année" value={like.date} />
+            </dl>
 
             <a
               href={like.link}
               target="_blank"
               rel="noopener noreferrer"
               className="
-                group mt-auto inline-flex h-10 w-fit items-center gap-1.5 rounded-md
-                border border-line-strong bg-surface px-4 text-sm font-medium
+                group mt-auto inline-flex h-10 w-full items-center justify-center gap-1.5
+                rounded-md border border-line-strong bg-surface px-4 text-sm font-medium
                 transition-[background-color,border-color] duration-150 ease-out
                 hover:border-gray-400 hover:bg-bg-subtle
               "
             >
-              consulter
+              en savoir plus
               <ArrowUpRight
                 size={15}
                 strokeWidth={1.75}

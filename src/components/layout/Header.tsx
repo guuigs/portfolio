@@ -24,7 +24,8 @@ export function Header({ socials, onNavigate }: HeaderProps) {
         bg-bg/80 backdrop-blur-md backdrop-saturate-150
       "
     >
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-6 lg:px-10">
+      {/* Full-bleed: the bar spans the viewport, only a gutter holds it in. */}
+      <div className="flex h-16 items-center justify-between gap-4 px-6 lg:px-10">
         <a
           href={homeHref}
           onClick={(event) => {

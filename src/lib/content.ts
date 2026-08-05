@@ -92,6 +92,8 @@ export interface Profile {
   heroImage: string;
   footerName: string;
   footerLine: string;
+  /** The paragraph under the footer heading. Supports [texte](url) links. */
+  footerBody: string;
 }
 
 export interface Socials {
@@ -121,6 +123,11 @@ export const DEFAULT_CONTENT: Content = {
     heroImage: imgHome,
     footerName: "Je m’appelle Guilhem",
     footerLine: "et je fais de yummy experiments.",
+    footerBody:
+      "Designer et développeur, je travaille la marque, l’interface et le code sur le même " +
+      "établi. J’aime les projets où l’on peut encore décider de tout : le message, la forme, " +
+      "et la manière dont ça se tient à l’écran. Si quelque chose ici vous parle, " +
+      "[écrivez-moi](mailto:guilhemterrier58@gmail.com) — je réponds toujours.",
   },
 
   socials: {
