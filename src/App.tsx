@@ -1,52 +1,204 @@
-import { useState, useRef, useEffect } from "react";
-import { Header } from "./components/layout/Header";
-import { TransitionOverlay } from "./components/layout/TransitionOverlay";
-import { Home } from "./components/pages/Home";
-import { Experiences } from "./components/pages/Experiences";
-import { Likes } from "./components/pages/Likes";
-import { Mentality } from "./components/pages/Mentality";
+import { useCallback, useEffect, useState } from "react";
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
+import { SectionNav } from "@/components/layout/SectionNav";
+import { Accueil } from "@/components/sections/Accueil";
+import { Competences } from "@/components/sections/Competences";
+import { CasEtudes } from "@/components/sections/CasEtudes";
+import { CoupsDeCoeur } from "@/components/sections/CoupsDeCoeur";
+import { AdminDrawer } from "@/components/cms/AdminDrawer";
+import { Editable } from "@/components/cms/Editable";
+import { ContentProvider, useContentStore } from "@/lib/store";
+import { hrefFor, useRoute } from "@/lib/router";
+import { withViewTransition } from "@/lib/view-transition";
+import { cn } from "@/lib/utils";
 
-export default function App() {
-  const [currentPage, setCurrentPage] = useState("home");
-  const [targetPage, setTargetPage] = useState<string | null>(null);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+const SECTION_TITLES: Record<string, string> = {
+  home: "Guilhem Terrier — portfolio",
+  competences: "Compétences — Guilhem Terrier",
+  "cas-etudes": "Cas d’études — Guilhem Terrier",
+  "coups-de-coeur": "Coups de cœur — Guilhem Terrier",
+};
 
-  const handleNavigate = (page: string) => {
-    if (page === currentPage || isTransitioning) return;
-    setTargetPage(page);
-    setIsTransitioning(true);
-  };
+function Portfolio() {
+  const store = useContentStore();
+  const { content, setField } = store;
+  const { route, navigate } = useRoute();
+  const [admin, setAdmin] = useState(false);
 
-  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isHome = route.section === "home";
+  const activeCaseId = route.projet ?? content.cases[0]?.id ?? "";
 
+  // Ctrl/⌘+A opens the admin layer, as the brief asks.
   useEffect(() => {
-    return () => {
-      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "a") return;
+      // Don't hijack select-all while the user is actually editing text.
+      const target = event.target as HTMLElement | null;
+      const isTextEntry =
+        target?.isContentEditable ||
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA";
+      if (isTextEntry) return;
+
+      event.preventDefault();
+      setAdmin((open) => !open);
     };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const handleCovered = () => {
-    if (targetPage) {
-      setCurrentPage(targetPage);
-      setTargetPage(null);
-      transitionTimerRef.current = setTimeout(() => {
-        setIsTransitioning(false);
-      }, 100);
-    }
-  };
+  // The tab title must describe the section you are actually looking at.
+  useEffect(() => {
+    document.title = SECTION_TITLES[route.section] ?? SECTION_TITLES.home;
+  }, [route.section]);
+
+  const go = useCallback(
+    (href: string) => {
+      withViewTransition(() => navigate(href));
+    },
+    [navigate],
+  );
+
+  const openCase = useCallback(
+    (caseId: string) => go(hrefFor("cas-etudes", { projet: caseId })),
+    [go],
+  );
+
+  const selectLike = useCallback(
+    (likeId: string | null) => {
+      // Replace rather than push: opening a lightbox shouldn't fill the
+      // history stack, but it should survive a refresh and be shareable.
+      navigate(hrefFor("coups-de-coeur", { item: likeId ?? undefined }), { replace: true });
+    },
+    [navigate],
+  );
 
   return (
-    <div className="relative w-full min-h-screen font-sans bg-white selection:bg-primary-blue selection:text-white">
-      <Header activePage={currentPage} onNavigate={handleNavigate} />
-      
-      <TransitionOverlay isVisible={isTransitioning} onCovered={handleCovered} />
+    <div
+      className={cn(
+        "flex min-h-dvh flex-col",
+        // Make room for the admin panel so it never covers the content
+        // you are editing.
+        admin && "lg:pr-[26rem]",
+      )}
+    >
+      <a
+        href="#contenu"
+        className="
+          sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200]
+          focus:rounded-md focus:border focus:border-line-strong focus:bg-surface
+          focus:px-4 focus:py-2 focus:text-sm
+        "
+      >
+        Aller au contenu
+      </a>
 
-      <main className="w-full h-full">
-        {currentPage === "home" && <Home />}
-        {currentPage === "experiences" && <Experiences />}
-        {currentPage === "likes" && <Likes />}
-        {currentPage === "mentality" && <Mentality />}
+      <Header socials={content.socials} onNavigate={go} />
+
+      <main id="contenu" className="flex-1">
+        {/* Persistent hero — the title and the three buttons stay put across
+            sections, so the site reads as one page rather than four. */}
+        <div
+          className={cn(
+            "mx-auto flex max-w-6xl flex-col items-center px-6 text-center lg:px-10",
+            isHome ? "gap-8 pb-16 pt-20 sm:pt-28" : "gap-6 pb-12 pt-12 sm:pt-16",
+          )}
+        >
+          {isHome && <p className="overline">{content.profile.role}</p>}
+
+          <Editable
+            as="h1"
+            admin={admin}
+            value={content.profile.heroTitle}
+            onCommit={(value) => setField("profile.heroTitle", value)}
+            className={cn(
+              // Size changes between home and a section, but it is NOT
+              // transitioned — font-size is a layout property. The view
+              // transition covers the swap instead.
+              "max-w-3xl tracking-[-0.045em]",
+              isHome ? "text-5xl sm:text-6xl lg:text-7xl" : "text-3xl sm:text-4xl",
+            )}
+          />
+
+          {isHome && (
+            <Editable
+              as="p"
+              multiline
+              admin={admin}
+              value={content.profile.heroIntro}
+              onCommit={(value) => setField("profile.heroIntro", value)}
+              className="max-w-xl text-balance text-base leading-relaxed text-fg-muted sm:text-lg"
+            />
+          )}
+
+          <SectionNav active={route.section} onNavigate={go} />
+        </div>
+
+        {/* Only this block swaps between sections. */}
+        <div style={{ viewTransitionName: "section-body" }} className="section-swap">
+          {isHome && <Accueil content={content} />}
+
+          {route.section === "competences" && (
+            <Competences
+              content={content}
+              admin={admin}
+              setField={setField}
+              onOpenCase={openCase}
+            />
+          )}
+
+          {route.section === "cas-etudes" && (
+            <CasEtudes
+              content={content}
+              admin={admin}
+              setField={setField}
+              activeId={activeCaseId}
+              onSelect={(caseId) =>
+                withViewTransition(() =>
+                  navigate(hrefFor("cas-etudes", { projet: caseId }), { replace: true }),
+                )
+              }
+            />
+          )}
+
+          {route.section === "coups-de-coeur" && (
+            <CoupsDeCoeur
+              content={content}
+              selectedId={route.item}
+              onSelect={selectLike}
+            />
+          )}
+        </div>
       </main>
+
+      <Footer content={content} admin={admin} setField={setField} />
+
+      {admin ? (
+        <AdminDrawer store={store} onClose={() => setAdmin(false)} />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAdmin(true)}
+          className="
+            fixed bottom-4 right-4 z-40 inline-flex h-8 items-center gap-1.5 rounded-md
+            border border-line-strong bg-surface/90 px-3 font-mono text-[11px]
+            text-fg-subtle opacity-60 backdrop-blur-sm
+            transition-[opacity,border-color] duration-150 ease-out
+            hover:border-gray-400 hover:opacity-100
+          "
+        >
+          ⌘/Ctrl&nbsp;+&nbsp;A · admin
+        </button>
+      )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ContentProvider>
+      <Portfolio />
+    </ContentProvider>
   );
 }
