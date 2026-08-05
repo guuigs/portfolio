@@ -19,8 +19,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # Vite inlines VITE_* at build time, so these have to exist here — not
+      # on the server. Absent, the site still builds and runs; the CMS simply
+      # stays local instead of publishing.
       - name: Build
         run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
