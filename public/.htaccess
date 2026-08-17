@@ -1,6 +1,10 @@
 # Single-page app on Apache (OVH). Serve real files when they exist,
 # otherwise hand the request to index.html so /competences, /cas-etudes
 # and /coups-de-coeur resolve on a hard refresh or a shared link.
+#
+# The file-and-directory test above the catch-all is also what keeps the
+# archived ArtSing site reachable: /artsing is a real directory, so Apache
+# serves its own index.html instead of booting the SPA.
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
@@ -12,9 +16,10 @@
   RewriteRule ^ index.html [L]
 </IfModule>
 
-# Hashed build assets are immutable; the HTML entry point never is.
+# Build assets carry a content hash, and the ArtSing archive is frozen by
+# definition — both can be cached hard. The HTML entry points never are.
 <IfModule mod_headers.c>
-  <FilesMatch "\.(js|css|woff2|png|jpg|jpeg|svg|webp)$">
+  <FilesMatch "\.(js|css|woff2|png|jpg|jpeg|svg|webp|mp4)$">
     Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
   <FilesMatch "\.html$">

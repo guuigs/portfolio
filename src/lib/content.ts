@@ -6,14 +6,16 @@
    ============================================================ */
 
 // --- Case-study imagery -------------------------------------------------
-import imgElapsio1 from "@/assets/images/Experiences/Design graphique/Elapsio1.png";
-import imgElapsio2 from "@/assets/images/Experiences/Design graphique/Elapsio 2.png";
+import imgElapsioLogo from "@/assets/images/Experiences/Design graphique/Elapsio1.png";
+import imgElapsioPack from "@/assets/images/Experiences/Design graphique/Elapsio 2.png";
 import imgLKL from "@/assets/images/Experiences/Design graphique/LKL.png";
-import imgArtsingDesign from "@/assets/images/Experiences/Design graphique/Artsing.png";
-import imgArtsingWeb from "@/assets/images/Experiences/Developpement web/Artsing.png";
-import imgWakeyWeb from "@/assets/images/Experiences/Developpement web/Wakey.png";
-import imgWakeyUx from "@/assets/images/Experiences/Experience utilisateur/Wakey.png";
-import imgMemoire from "@/assets/images/Experiences/Experience utilisateur/Mémoire.png";
+import imgArtsingSite from "@/assets/images/Experiences/Design graphique/Artsing.png";
+import imgArtsingStack from "@/assets/images/Experiences/Developpement web/Artsing.png";
+import imgWakeyStack from "@/assets/images/Experiences/Developpement web/Wakey.png";
+import imgWakeyScreens from "@/assets/images/Experiences/Experience utilisateur/Wakey.png";
+import imgMemoireThumb from "@/assets/images/Experiences/Experience utilisateur/memoire-thumb.png";
+import imgMemoireNumeros from "@/assets/images/Experiences/Experience utilisateur/memoire-maquette-numeros.png";
+import imgMemoireQR from "@/assets/images/Experiences/Experience utilisateur/memoire-maquette-qr.png";
 import imgC2RMF from "@/assets/images/Experiences/Gestion de projet/C2RMF.png";
 import imgHome from "@/assets/images/home-image.png";
 
@@ -47,11 +49,27 @@ import imgSoleilVie from "@/assets/images/likes/Soleil de ma vie.jpg";
 
 // ---------------------------------------------------------------- types
 
-/** A paragraph, a bullet list, an image, or a standalone link in an article. */
+/**
+ * Bumped whenever the shape of `Content` changes, or whenever the seeded copy
+ * is rewritten deeply enough that a previously published payload should no
+ * longer win over what ships in this file. The store compares it against the
+ * saved draft and against the published row, and falls back to the defaults
+ * when they disagree — see `lib/store.tsx`.
+ */
+export const CONTENT_VERSION = 2;
+
+/** A heading, a paragraph, a bullet list, an image, or a standalone link. */
 export type Block =
+  | { type: "heading"; value: string }
   | { type: "text"; value: string }
   | { type: "list"; intro?: string; items: string[] }
-  | { type: "image"; value: string; caption?: string }
+  | {
+      type: "image";
+      value: string;
+      caption?: string;
+      /** CSS aspect-ratio for the frame. Defaults to the 4/3 house format. */
+      ratio?: string;
+    }
   | { type: "link"; href: string; label: string };
 
 export interface CaseStudy {
@@ -60,6 +78,10 @@ export interface CaseStudy {
   /** Short label for carousel thumbnails and skill rails. */
   shortTitle: string;
   date: string;
+  /** Standfirst printed under the title, before the article proper. */
+  summary?: string;
+  /** Facts listed in the article header — rôle, contexte, livrables… */
+  meta?: { label: string; value: string }[];
   thumb: string;
   blocks: Block[];
 }
@@ -104,6 +126,7 @@ export interface Socials {
 }
 
 export interface Content {
+  version: number;
   profile: Profile;
   socials: Socials;
   skills: Skill[];
@@ -114,6 +137,8 @@ export interface Content {
 // ------------------------------------------------------------- defaults
 
 export const DEFAULT_CONTENT: Content = {
+  version: CONTENT_VERSION,
+
   profile: {
     name: "Guilhem Terrier",
     role: "design · ux · développement",
@@ -153,7 +178,7 @@ export const DEFAULT_CONTENT: Content = {
         "Direction artistique",
         "Packaging",
       ],
-      cases: ["elapsio-branding", "elapsio-packaging", "lkl", "artsing-design"],
+      cases: ["elapsio", "lkl", "artsing"],
     },
     {
       id: "ux",
@@ -162,8 +187,9 @@ export const DEFAULT_CONTENT: Content = {
         "Mes études et mes expériences professionnelles m’ont montré à quel point l’étude du comportement de l’utilisateur est cruciale au succès d’un produit — et à quel point, paradoxalement, elle est peu pratiquée. Je m’efforce donc de toujours partir de l’usage : tests, interviews, études.",
       stack: [
         "Recherche utilisateur",
-        "Interviews",
+        "Entretiens semi-directifs",
         "Questionnaires",
+        "Analyse de corpus",
         "Wireframes",
         "Prototypage",
         "Tests utilisateurs",
@@ -182,12 +208,14 @@ export const DEFAULT_CONTENT: Content = {
         "Expo",
         "Supabase",
         "Perplexity API",
+        "Stripe",
         "HTML",
         "CSS",
+        "p5.js",
         "Git",
         "Cursor",
       ],
-      cases: ["wakey", "artsing-web"],
+      cases: ["wakey", "artsing"],
     },
     {
       id: "project",
@@ -208,212 +236,378 @@ export const DEFAULT_CONTENT: Content = {
   ],
 
   cases: [
-    {
-      id: "elapsio-branding",
-      shortTitle: "Elapsio — branding",
-      title: "Elapsio — création du branding de l’entreprise",
-      date: "2024",
-      thumb: imgElapsio1,
-      blocks: [
-        {
-          type: "text",
-          value:
-            "Elapsio conçoit des kits alimentaires pour la randonnée. Je les ai accompagnés depuis la création de l’identité jusqu’aux déclinaisons de la marque.",
-        },
-        {
-          type: "text",
-          value:
-            "Le parti pris : une marque chaleureuse et lisible, capable de tenir aussi bien sur un sachet de dix centimètres que sur une bannière. Le système repose sur une palette naturelle et une typographie éditoriale.",
-        },
-        {
-          type: "image",
-          value: imgElapsio1,
-          caption: "Système d’identité — logotype, palette et déclinaisons.",
-        },
-      ],
-    },
-    {
-      id: "elapsio-packaging",
-      shortTitle: "Elapsio — packaging",
-      title: "Elapsio — packagings du kit alimentaire de randonnée",
-      date: "2024",
-      thumb: imgElapsio2,
-      blocks: [
-        {
-          type: "text",
-          value:
-            "La déclinaison packaging du produit phare d’Elapsio : le kit alimentaire de randonnée. Contrainte principale — rester lisible sur un format très contraint, en rayon comme dans un sac.",
-        },
-        {
-          type: "image",
-          value: imgElapsio2,
-          caption: "Gamme de packagings du kit alimentaire.",
-        },
-      ],
-    },
-    {
-      id: "lkl",
-      shortTitle: "LKL",
-      title: "LKL — branding de la ligue esport amateur",
-      date: "2023",
-      thumb: imgLKL,
-      blocks: [
-        {
-          type: "text",
-          value:
-            "LKL est une ligue esport amateur. L’enjeu : une identité qui claque en stream tout en restant déclinable par des équipes bénévoles, sans direction artistique derrière elles.",
-        },
-        {
-          type: "image",
-          value: imgLKL,
-          caption: "Identité et déclinaisons de diffusion.",
-        },
-      ],
-    },
-    {
-      id: "artsing-design",
-      shortTitle: "Artsing — branding",
-      title: "Artsing — branding à l’aube de l’IA générative",
-      date: "2023",
-      thumb: imgArtsingDesign,
-      blocks: [
-        {
-          type: "text",
-          value:
-            "Artsing explorait la génération d’images par intelligence artificielle à ses balbutiements. J’ai construit la marque autour de ces expérimentations.",
-        },
-        {
-          type: "image",
-          value: imgArtsingDesign,
-          caption: "Identité Artsing.",
-        },
-      ],
-    },
-    {
-      id: "artsing-web",
-      shortTitle: "Artsing — site",
-      title: "Artsing — développement de la page web",
-      date: "2023",
-      thumb: imgArtsingWeb,
-      blocks: [
-        {
-          type: "text",
-          value:
-            "La page web d’Artsing, développée en HTML, CSS et JavaScript, met en scène les explorations génératives de la marque.",
-        },
-        {
-          type: "image",
-          value: imgArtsingWeb,
-          caption: "Page d’accueil animée.",
-        },
-        {
-          type: "link",
-          href: "https://guilhemterrier.fr/artsing/index.html",
-          label: "Visitez le site Artsing",
-        },
-      ],
-    },
+    /* ------------------------------------------------------------ wakey */
     {
       id: "wakey",
       shortTitle: "Wakey",
-      title: "Wakey — application mobile d’agrégation d’actualité par IA",
+      title: "Wakey — une application d’actualité qui sait s’arrêter",
       date: "2024",
-      thumb: imgWakeyWeb,
+      summary:
+        "Un agrégateur d’actualité par IA, mené seul de la première ligne de code jusqu’à la publication sur l’App Store. Ce qu’il fait de mieux, c’est ce qu’il ne montre pas.",
+      meta: [
+        { label: "rôle", value: "Conception, UX, développement, publication" },
+        { label: "contexte", value: "Projet personnel" },
+        { label: "stack", value: "Expo · Supabase · Perplexity · Stripe" },
+      ],
+      thumb: imgWakeyScreens,
       blocks: [
+        { type: "heading", value: "Pourquoi je l’ai fait" },
         {
           type: "text",
           value:
-            "Wakey est mon projet le plus abouti. Je voulais apprendre à travailler avec les API d’IA : j’ai donc appris React, le fonctionnement de Git et GitHub, et mené le projet jusqu’à la publication.",
+            "Wakey est mon projet le plus abouti. Je voulais apprendre à travailler avec les API d’IA, et je ne voulais pas l’apprendre sur un exercice : j’ai donc appris React, Git et GitHub en cours de route, et je suis allé jusqu’au bout — revue de l’App Store comprise.",
+        },
+
+        { type: "heading", value: "Le parti pris" },
+        {
+          type: "text",
+          value:
+            "Wakey est un agrégateur, et un agrégateur ne vaut que par ce qu’il retire. Trois actualités par jour, deux centres d’intérêt, un résumé qui se termine. Quand la pile est vide, l’application vous le dit et s’arrête là — pas de flux infini, pas de « et aussi ». C’est la décision de conception dont je suis le plus content, et c’est aussi celle qui a été la plus difficile à tenir.",
         },
         {
+          type: "text",
+          value:
+            "Le même raisonnement tient l’écran d’article : un contexte, une info, rien d’autre. Chaque écran ne fait qu’une chose, et l’abonnement Wakey+ ne débloque pas des fonctionnalités mais du volume — six actualités au lieu de trois, autant de catégories que voulu, pour trois euros par mois.",
+        },
+        {
+          type: "image",
+          value: imgWakeyScreens,
+          caption:
+            "Un article, la fin du résumé du jour, le profil. Le message « vous venez de finir » est une fonctionnalité, pas un message d’erreur.",
+        },
+
+        { type: "heading", value: "La chaîne technique" },
+        {
           type: "list",
-          intro: "La stack complète :",
+          intro: "Six briques, chacune sur un seul rôle :",
           items: [
-            "Perplexity API pour l’agrégation et la synthèse",
-            "Supabase pour la base de données et l’authentification",
-            "Expo pour React en mobile",
-            "Cursor comme environnement de développement",
-            "iOS pour la publication",
+            "Perplexity API — la collecte et la synthèse des actualités.",
+            "Supabase — la base de données, l’authentification, et le chargement quotidien des contenus.",
+            "Stripe — la vérification des statuts d’abonnement Wakey+.",
+            "Expo — React en mobile, et le déploiement.",
+            "Cursor — l’environnement de développement.",
+            "App Store — la publication sur iOS.",
           ],
         },
         {
           type: "image",
-          value: imgWakeyWeb,
-          caption: "Wakey — développement et publication.",
-        },
-        {
-          type: "text",
-          value:
-            "L’attention portée à l’expérience utilisateur se reflète jusque dans les écrans : Wakey est un agrégateur, sa valeur tient à ce qu’il retire autant qu’à ce qu’il affiche.",
-        },
-        {
-          type: "image",
-          value: imgWakeyUx,
-          caption: "Wakey — écrans de l’application.",
+          value: imgWakeyStack,
+          caption: "La chaîne complète, de la collecte au téléchargement.",
         },
       ],
     },
+
+    /* ---------------------------------------------------------- mémoire */
     {
       id: "memoire",
       shortTitle: "Mémoire M2",
-      title: "Mémoire — repenser l’audioguide de musée",
-      date: "2025",
-      thumb: imgMemoire,
+      title: "Mémoire — pourquoi les audioguides sur smartphone ne prennent pas",
+      date: "2024 — 2026",
+      summary:
+        "117 pages, huit entretiens, 70 répondants, six audioguides analysés et un prototype testé en salle. Je cherchais un problème de design ; le terrain m’a répondu autre chose.",
+      meta: [
+        { label: "rôle", value: "Recherche, terrain, prototype" },
+        {
+          label: "contexte",
+          value: "Master Design d’Interface Multimédia et Internet, Université Sorbonne Paris Nord",
+        },
+        { label: "direction", value: "Benoît Berthou" },
+      ],
+      thumb: imgMemoireThumb,
       blocks: [
+        { type: "heading", value: "Le paradoxe de départ" },
         {
           type: "text",
           value:
-            "L’exemple le plus net de mon attachement à la recherche utilisateur est mon mémoire, dans lequel je m’attache à identifier les points de friction liés aux audioguides de musée et à proposer une solution pertinente.",
+            "En dix ans, le nombre d’applications muséales a doublé en France : 398 en 2015, 530 en 2021. Pendant ce temps, l’audioguide dédié reste utilisé par 75 % des visiteurs quand l’application sur smartphone personnel plafonne autour de 50 % (baromètre Gece, 2025). On produit de plus en plus d’un outil de moins en moins utilisé. Entre la promesse d’une médiation accessible et la réalité d’un outil marginalement adopté, qu’est-ce qui empêche l’audioguide mobile de tenir son rôle ?",
+        },
+
+        { type: "heading", value: "La méthode" },
+        {
+          type: "list",
+          intro:
+            "Cinq hypothèses — conception, économique, organisationnelle, contextuelle, et le support lui-même — mises à l’épreuve d’un dispositif qualitatif :",
+          items: [
+            "Huit entretiens semi-directifs, côté visiteurs et côté professionnels de musée.",
+            "Un questionnaire, 70 répondants.",
+            "Un corpus de six audioguides analysés selon une grille commune.",
+            "Un prototype testé auprès de cinq visiteurs à la Cité de l’Architecture et du Patrimoine.",
+          ],
+        },
+
+        { type: "heading", value: "Le prototype : une application qui ne fait presque rien" },
+        {
+          type: "text",
+          value:
+            "L’analyse du corpus avait montré que la quasi-totalité des interfaces d’audioguide force le regard vers l’écran — cartes, menus, listes de parcours — au détriment de ce que le visiteur est venu voir. Le regard est la ressource rare dans un musée. J’ai donc conçu l’inverse : un déclenchement simple, un contenu audio au centre, l’écran en périphérie, et pour idéal que le téléphone puisse rester dans la poche pendant l’écoute.",
+        },
+        {
+          type: "text",
+          value:
+            "Deux maquettes, deux contenus audio, une après-midi dans la Galerie des moulages. Les deux partagent la même interface de lecture ; seule l’entrée change — la saisie d’un numéro héritée de l’audioguide physique d’un côté, le scan d’un QR code de l’autre.",
         },
         {
           type: "image",
-          value: imgMemoire,
+          value: imgMemoireNumeros,
+          caption: "Maquette 1 — la logique des numéros, héritée du boîtier.",
+          ratio: "1100 / 577",
+        },
+        {
+          type: "image",
+          value: imgMemoireQR,
           caption:
-            "Extraits du questionnaire de début de recherche M2 sur les attentes des utilisateurs.",
+            "Maquette 2 — la logique du QR code, précédée d’un module d’accueil en quatre écrans.",
+          ratio: "952 / 557",
+        },
+
+        { type: "heading", value: "Ce que le terrain a renvoyé" },
+        {
+          type: "text",
+          value:
+            "Quatre visiteurs sur cinq ont préféré le QR code : moins d’étapes, un geste plus familier. Mais la préférence est arrivée avec une réserve qui dit l’essentiel — « Quand je suis dans un musée, j’ai pas forcément envie d’être sur mon téléphone. » On peut gagner sur le déclenchement et perdre quand même, parce que le problème n’est pas là où on le cherchait.",
+        },
+
+        { type: "heading", value: "Là où le design ne peut rien" },
+        {
+          type: "text",
+          value:
+            "Je suis parti en cherchant un défaut de conception, et j’ai trouvé une chaîne de production. Entre la conservation qui valide, la médiation qui écrit sous surveillance et le prestataire qui standardise, l’audioguide finit sans auteur identifiable : un objet orphelin, sans signature ni responsabilité éditoriale. On peut concevoir la meilleure interface du monde, elle se heurtera toujours à la même question, qui est de gouvernance et non de conception : qui paie pour la développer, et qui garantit qu’elle sera maintenue ?",
+        },
+        {
+          type: "text",
+          value:
+            "Ce mémoire est aussi l’endroit où j’ai dû reconnaître mon propre biais. Je pensais en termes d’outil, pas en termes de visiteur — exactement le reproche que je faisais aux institutions.",
+        },
+        {
+          type: "link",
+          href: "/pdf/memoire-m2-dimi.pdf",
+          label: "Lire le mémoire (M2, 117 pages)",
         },
         {
           type: "link",
           href: "/pdf/memoire-m1-dimi.pdf",
-          label: "Lire le mémoire",
+          label: "Lire l’état de l’art (M1, 34 pages)",
         },
       ],
     },
+
+    /* ---------------------------------------------------------- elapsio */
     {
-      id: "c2rmf",
-      shortTitle: "C2RMF",
-      title: "C2RMF — gestion technique et éditoriale du site",
-      date: "2022 — 2024",
-      thumb: imgC2RMF,
+      id: "elapsio",
+      shortTitle: "Elapsio",
+      title: "Elapsio — l’identité et les packagings d’une marque de randonnée",
+      date: "2024",
+      summary:
+        "Une marque de kits alimentaires pour la randonnée, du logotype aux sachets. Un même système devait tenir sur une bannière et sur dix centimètres de packaging.",
+      meta: [
+        { label: "rôle", value: "Identité, direction artistique, packaging" },
+        { label: "contexte", value: "Mission freelance" },
+        { label: "livrables", value: "Logotype, déclinaisons, gamme de packagings" },
+      ],
+      thumb: imgElapsioLogo,
       blocks: [
+        { type: "heading", value: "Le contexte" },
         {
           type: "text",
           value:
-            "Trois années d’alternance au Centre de Recherche et de Restauration des Musées de France, puis à l’Inrap, à piloter des sites institutionnels et leurs refontes.",
+            "Elapsio conçoit des kits alimentaires pour la randonnée. Je les ai accompagnés depuis la création de l’identité jusqu’à ses déclinaisons, packagings compris. La marque devait tenir dans deux mondes qui ne se ressemblent pas : le rayon d’un magasin, où elle est comparée à dix autres, et le fond d’un sac à dos, où elle est seule et froissée.",
+        },
+
+        { type: "heading", value: "L’identité" },
+        {
+          type: "text",
+          value:
+            "Le parti pris : une marque chaleureuse et lisible, réductible à une seule forme. Le symbole se lit comme une coquille de pèlerin autant que comme un sommet, avec des rayons qui redescendent — c’est la même chose, la marche et ce qu’on regarde en marchant. Il fonctionne en aplat monochrome, ce qui était la vraie contrainte : broderie, tampon, sérigraphie sur sachet, tout doit passer sans dégradé.",
+        },
+        {
+          type: "image",
+          value: imgElapsioLogo,
+          caption: "Le logotype en aplat : une coquille, un sommet, et des rayons qui redescendent.",
+        },
+
+        { type: "heading", value: "Le packaging" },
+        {
+          type: "text",
+          value:
+            "Sur le sachet, la hiérarchie est brutale par nécessité : le nom de la recette d’abord, tout le reste ensuite. Le format ne pardonne rien — dix centimètres de haut, une main gantée, une lumière de fin de journée. La palette part du terrain plutôt que de la marque : les verts de la forêt, l’orange d’un soleil bas.",
+        },
+        {
+          type: "image",
+          value: imgElapsioPack,
+          caption:
+            "Un sachet Essentielle Boost à l’étape, entre le réchaud et les chaussures. Le seul test qui compte.",
+        },
+      ],
+    },
+
+    /* ---------------------------------------------------------- artsing */
+    {
+      id: "artsing",
+      shortTitle: "ArtSing",
+      title: "ArtSing — faire chanter des tableaux",
+      date: "2023",
+      summary:
+        "Trois tableaux animés par IA qui chantent, et un karaoké pour reprendre avec eux. Un projet de 2023, entièrement réécrit deux ans plus tard, remis en ligne aujourd’hui.",
+      meta: [
+        { label: "rôle", value: "Concept, identité, développement" },
+        { label: "contexte", value: "Projet personnel" },
+        { label: "stack", value: "HTML · CSS · JavaScript · p5.js" },
+      ],
+      thumb: imgArtsingSite,
+      blocks: [
+        { type: "heading", value: "L’idée" },
+        {
+          type: "text",
+          value:
+            "En 2023, la génération de vidéo par IA sortait tout juste des laboratoires et tout le monde cherchait à quoi ça pouvait bien servir. J’ai voulu m’en servir pour quelque chose de bête et de joyeux : faire chanter des tableaux. Trois toiles, trois morceaux — l’autoportrait de Van Gogh sur Tainted Love, la Joconde sur Sunny, le portrait de Chopin sur Un peu de haine.",
+        },
+        {
+          type: "text",
+          value:
+            "Le titre dit le programme : « the art of singing together ». Le tableau ouvre la bouche, les paroles défilent, et à ce moment-là le visiteur a le choix — regarder, ou chanter avec. Rien dans l’interface ne l’oblige, et c’est bien pour ça que ça marche.",
+        },
+
+        { type: "heading", value: "L’interface" },
+        {
+          type: "text",
+          value:
+            "Rose poudré et orange brûlé, Instrument Serif en italique pour les noms propres et Inter pour tout le reste : le contraste entre le peintre et la chanson est porté par la typographie plutôt que par un décor. L’accueil aligne les trois toiles comme des pochettes de disque, avec un léger basculement en 3D qui suit la souris — juste assez pour donner envie de cliquer.",
+        },
+        {
+          type: "text",
+          value:
+            "Sur une page de morceau, l’écran se réduit à quatre choses : la toile qui chante, la phrase en cours, la suivante en dessous plus pâle, et une barre qui avance. Un bouton play, un bouton mute. Le karaoké est piloté par une liste de timecodes écrits à la main, morceau par morceau — c’est artisanal, et c’est ce qui fait que ça tombe juste.",
+        },
+        {
+          type: "image",
+          value: imgArtsingSite,
+          caption: "La page Chopin, telle qu’elle est en ligne aujourd’hui.",
+        },
+
+        { type: "heading", value: "Sous le capot" },
+        {
+          type: "text",
+          value:
+            "HTML, CSS et JavaScript à la main — pas de framework, pas d’étape de build. p5.js dessine le fond de l’accueil, où le mot « ArtSing » se répand en continu. Les toiles ont été animées par des modèles vidéo, le code écrit avec ChatGPT et Cursor pour compagnons, et la première version hébergée chez O2switch.",
+        },
+        {
+          type: "image",
+          value: imgArtsingStack,
+          caption:
+            "La chaîne de production : des IA pour donner vie aux tableaux, Cursor pour le code, O2switch pour l’hébergement.",
+        },
+
+        { type: "heading", value: "Deux versions, et une remise en ligne" },
+        {
+          type: "text",
+          value:
+            "La première version, en 2023, était plus bavarde : un curseur remplacé par une traînée, et deux spectres qui écoutaient le micro pour réagir à la voix du visiteur. L’idée était bonne, l’exécution beaucoup moins — les paroles se décalaient, et la moitié des pages ne tenait pas la route. La réécriture de 2025 a tout enlevé sauf l’essentiel, et c’est celle-là qui est en ligne.",
+        },
+        {
+          type: "text",
+          value:
+            "Le code dormait depuis dans un dossier. Je l’ai remonté ici en ne corrigeant que ce qui l’empêchait d’être consultable : la bibliothèque p5 servie depuis un CDN, désormais embarquée ; un chemin d’image absolu qui pointait à côté ; une mise en page sans aucune media query, qui débordait sur téléphone. Le reste est tel quel.",
+        },
+        {
+          type: "link",
+          href: "/artsing/",
+          label: "Ouvrir ArtSing",
+        },
+      ],
+    },
+
+    /* ------------------------------------------------------------ c2rmf */
+    {
+      id: "c2rmf",
+      shortTitle: "C2RMF & Inrap",
+      title: "C2RMF puis Inrap — piloter des sites d’institution",
+      date: "2022 — 2024",
+      summary:
+        "Trois ans d’alternance dans deux institutions culturelles publiques, à faire vivre des sites, à piloter des refontes et à négocier avec des prestataires. Trafic doublé en deux ans.",
+      meta: [
+        { label: "rôle", value: "Chargé de projet web et éditorial" },
+        { label: "contexte", value: "Alternance — C2RMF (Ministère de la Culture), puis Inrap" },
+        { label: "outils", value: "Drupal · Analytics · SEO" },
+      ],
+      thumb: imgC2RMF,
+      blocks: [
+        { type: "heading", value: "Au C2RMF" },
+        {
+          type: "text",
+          value:
+            "Le Centre de Recherche et de Restauration des Musées de France produit un savoir considérable et le publie peu. Mon travail a moins consisté à écrire qu’à débloquer : aller chercher la matière département par département, raccourcir la chaîne de validation, et faire en sorte que le site cesse d’être un goulot d’étranglement.",
         },
         {
           type: "list",
-          intro: "Mes actions au C2RMF :",
+          intro: "Ce que ça a donné :",
           items: [
-            "Augmentation du trafic web de plus de 100 % en deux ans.",
-            "Optimisation des processus de création de contenus avec les différents départements, pour augmenter la fréquence de publication.",
-            "Analyse du trafic et du comportement des utilisateurs afin de revoir l’arborescence du site.",
+            "Trafic web en hausse de plus de 100 % en deux ans.",
+            "Processus de création de contenus revu avec les différents départements, pour augmenter la fréquence de publication.",
+            "Analyse du trafic et du comportement des utilisateurs, puis refonte de l’arborescence.",
             "Optimisation du référencement et de l’accessibilité des pages.",
-            "Participation aux ateliers d’amélioration du CMS Drupal avec l’institution et le prestataire.",
+            "Ateliers d’amélioration du CMS Drupal avec l’institution et le prestataire.",
           ],
         },
         {
           type: "image",
           value: imgC2RMF,
-          caption: "Site vitrine du centre.",
+          caption: "Le site vitrine du centre.",
+        },
+
+        { type: "heading", value: "Puis à l’Inrap" },
+        {
+          type: "text",
+          value:
+            "À l’Institut national de recherches en archéologie préventive, le poste bascule vers le pilotage : deux refontes menées en parallèle, la direction d’un côté, le prestataire de l’autre, et le back-office entre les deux.",
         },
         {
           type: "list",
-          intro: "Mes actions à l’Inrap :",
           items: [
             "Suivi de la refonte du site portail : conseil auprès de la direction et du prestataire, ateliers, back-office.",
             "Suivi de la refonte de l’iconothèque, dans les mêmes conditions.",
             "Chargé de projet sur la participation de l’Inrap au bicentenaire de la photographie.",
           ],
+        },
+      ],
+    },
+
+    /* -------------------------------------------------------------- lkl */
+    {
+      id: "lkl",
+      shortTitle: "LKL",
+      title: "LKL — l’identité d’une ligue esport amateur",
+      date: "2023",
+      summary:
+        "Une marque qui doit claquer en stream et rester déclinable par des bénévoles, sans direction artistique derrière eux pour rattraper les écarts.",
+      meta: [
+        { label: "rôle", value: "Identité, direction artistique" },
+        { label: "contexte", value: "Ligue esport amateur" },
+        { label: "livrables", value: "Logotype, déclinaisons de diffusion" },
+      ],
+      thumb: imgLKL,
+      blocks: [
+        { type: "heading", value: "Le contexte" },
+        {
+          type: "text",
+          value:
+            "LKL est une ligue esport amateur. Le vrai commanditaire n’est pas une équipe marketing : ce sont des bénévoles qui vont produire eux-mêmes leurs visuels de match, chaque semaine, avec les outils qu’ils ont sous la main. Une charte de quarante pages n’aurait servi à personne.",
+        },
+
+        { type: "heading", value: "Le parti pris" },
+        {
+          type: "text",
+          value:
+            "Une forme, un mot, un fond. L’étoile éclatée fonctionne comme un impact ; le lettrage est massif et sans détail ; le contraste est poussé au maximum. C’est une réponse à la contrainte de diffusion autant qu’un choix esthétique : une image de stream est compressée, redimensionnée, incrustée sur un fond de jeu. Ce qui est fin disparaît, ce qui est plein survit.",
+        },
+        {
+          type: "text",
+          value:
+            "Le grain sur l’aplat est là pour la même raison — il donne de la matière à une surface unie qui, sans lui, se serait délitée en bandes à la compression.",
+        },
+        {
+          type: "image",
+          value: imgLKL,
+          caption: "Le lockup principal sur son aplat grainé.",
         },
       ],
     },

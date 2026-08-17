@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Maximize2, X } from "lucide-react";
 import type { Block, CaseStudy, Content } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import { IconButton } from "@/components/ui/IconButton";
@@ -14,6 +14,68 @@ export interface CasEtudesProps {
   onSelect: (caseId: string) => void;
 }
 
+/* ------------------------------------------------------------- image zoom */
+
+/**
+ * Full-screen view of one article image.
+ *
+ * The article shows every picture inside a fixed ratio box so the column keeps
+ * its rhythm, which means a wide mockup sheet lands at column width and its
+ * phone screens end up unreadable. This is the escape hatch: same image, no
+ * frame, as large as the viewport allows.
+ */
+function ImageZoom({ src, caption, onClose }: { src: string | null; caption?: string; onClose: () => void }) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (src && !dialog.open) dialog.showModal();
+    else if (!src && dialog.open) dialog.close();
+  }, [src]);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    // Fires for Escape and for programmatic closes alike.
+    dialog.addEventListener("close", onClose);
+    return () => dialog.removeEventListener("close", onClose);
+  }, [onClose]);
+
+  return (
+    <dialog
+      ref={dialogRef}
+      aria-label={caption || "Image en grand"}
+      onClick={(event) => {
+        if (event.target === dialogRef.current) dialogRef.current?.close();
+      }}
+      className="
+        m-auto max-h-[94dvh] w-[min(84rem,96vw)] overflow-hidden rounded-xl
+        border border-line bg-surface p-0 text-fg shadow-lg
+        backdrop:bg-gray-900/70 backdrop:backdrop-blur-[3px]
+      "
+    >
+      {src && (
+        <div className="relative flex max-h-[94dvh] flex-col">
+          <IconButton
+            label="Fermer"
+            onClick={() => dialogRef.current?.close()}
+            className="absolute right-3 top-3 z-10 bg-surface/90 backdrop-blur-sm"
+          >
+            <X size={16} strokeWidth={1.75} aria-hidden="true" />
+          </IconButton>
+          <div className="min-h-0 flex-1 overflow-auto bg-bg-subtle p-3 sm:p-6">
+            <img src={src} alt={caption ?? ""} className="mx-auto max-w-full" />
+          </div>
+          {caption && (
+            <p className="border-t border-line px-5 py-3 text-[13px] text-fg-subtle">{caption}</p>
+          )}
+        </div>
+      )}
+    </dialog>
+  );
+}
+
 /* ----------------------------------------------------------------- article */
 
 function ArticleBlock({
@@ -22,31 +84,68 @@ function ArticleBlock({
   blockIndex,
   admin,
   setField,
+  onZoom,
 }: {
   block: Block;
   caseIndex: number;
   blockIndex: number;
   admin: boolean;
   setField: (path: string, value: unknown) => void;
+  onZoom: (image: { src: string; caption?: string }) => void;
 }) {
   const path = `cases.${caseIndex}.blocks.${blockIndex}`;
+
+  if (block.type === "heading") {
+    // Extra room above, none below: a heading belongs to what follows it.
+    return (
+      <Editable
+        as="h3"
+        admin={admin}
+        value={block.value}
+        onCommit={(value) => setField(`${path}.value`, value)}
+        className="mt-4 text-xl tracking-[-0.03em] first:mt-0 sm:text-[22px]"
+      />
+    );
+  }
 
   if (block.type === "image") {
     return (
       <figure className="flex flex-col gap-3">
-        {/* The case-study assets are all 1024×768, so a 4:3 box reserves the
-            exact space before decode — no layout shift, no cropping. */}
-        <div className="aspect-4/3 overflow-hidden rounded-lg border border-line bg-bg-subtle">
+        {/* A fixed ratio box reserves the exact space before decode — no
+            layout shift. Most assets are 4:3; anything else declares its own
+            ratio rather than being cropped into the house format. */}
+        <button
+          type="button"
+          onClick={() => onZoom({ src: block.value, caption: block.caption })}
+          aria-label={
+            block.caption ? `Agrandir : ${block.caption}` : "Agrandir l’image"
+          }
+          className="
+            group relative block w-full cursor-zoom-in overflow-hidden rounded-lg
+            border border-line bg-bg-subtle
+            transition-colors duration-150 ease-out hover:border-line-strong
+          "
+          style={{ aspectRatio: block.ratio ?? "4 / 3" }}
+        >
           <img
             src={block.value}
             alt={block.caption ?? ""}
-            width={1024}
-            height={768}
             loading="lazy"
             decoding="async"
             className="size-full object-cover"
           />
-        </div>
+          <span
+            aria-hidden="true"
+            className="
+              pointer-events-none absolute right-3 top-3 flex size-8 items-center
+              justify-center rounded-md border border-line bg-surface/90 text-fg-subtle
+              opacity-0 backdrop-blur-sm transition-opacity duration-150 ease-out
+              group-hover:opacity-100 group-focus-visible:opacity-100
+            "
+          >
+            <Maximize2 size={14} strokeWidth={1.75} />
+          </span>
+        </button>
         {(block.caption || admin) && (
           <Editable
             as="figcaption"
@@ -275,6 +374,15 @@ export function CasEtudes({ content, admin, setField, activeId, onSelect }: CasE
   const { cases } = content;
   const index = Math.max(0, cases.findIndex((study) => study.id === activeId));
   const current: CaseStudy | undefined = cases[index];
+  const [zoom, setZoom] = useState<{ src: string; caption?: string } | null>(null);
+
+  const closeZoom = useCallback(() => setZoom(null), []);
+
+  // Switching case while an image is open would leave the dialog showing a
+  // picture that no longer belongs to the article on screen.
+  useEffect(() => {
+    setZoom(null);
+  }, [activeId]);
 
   const step = (delta: number) => {
     if (cases.length === 0) return;
@@ -317,13 +425,14 @@ export function CasEtudes({ content, admin, setField, activeId, onSelect }: CasE
       </div>
 
       <article className="gutter-x mx-auto flex w-full max-w-3xl flex-col gap-8">
-        <header className="flex flex-col gap-4 border-b border-line pb-8">
+        <header className="flex flex-col gap-5 border-b border-line pb-8">
           <div className="flex items-center gap-3">
             <time className="font-mono text-[13px] tracking-tight text-fg-faint sm:text-[12px]">
               {current.date}
             </time>
             <span aria-hidden="true" className="h-px flex-1 bg-line" />
           </div>
+
           <Editable
             as="h2"
             admin={admin}
@@ -331,9 +440,35 @@ export function CasEtudes({ content, admin, setField, activeId, onSelect }: CasE
             onCommit={(value) => setField(`cases.${index}.title`, value)}
             className="text-3xl tracking-[-0.035em] sm:text-4xl"
           />
+
+          {/* Optional: a payload published before these fields existed simply
+              renders the header it always had. */}
+          {(current.summary || admin) && (
+            <Editable
+              as="p"
+              multiline
+              admin={admin}
+              value={current.summary ?? ""}
+              onCommit={(value) => setField(`cases.${index}.summary`, value)}
+              className="max-w-prose text-balance text-[18px] leading-relaxed text-fg-muted sm:text-[17px]"
+            />
+          )}
+
+          {current.meta && current.meta.length > 0 && (
+            <dl className="mt-1 flex flex-col gap-2 border-t border-line pt-5">
+              {current.meta.map((entry, metaIndex) => (
+                <div key={metaIndex} className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
+                  <dt className="overline sm:w-24 sm:shrink-0 sm:pt-[3px]">{entry.label}</dt>
+                  <dd className="min-w-0 text-[14px] leading-snug text-fg-muted sm:text-[13px]">
+                    {entry.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )}
         </header>
 
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-7">
           {current.blocks.map((block, blockIndex) => (
             <ArticleBlock
               key={blockIndex}
@@ -342,10 +477,13 @@ export function CasEtudes({ content, admin, setField, activeId, onSelect }: CasE
               blockIndex={blockIndex}
               admin={admin}
               setField={setField}
+              onZoom={setZoom}
             />
           ))}
         </div>
       </article>
+
+      <ImageZoom src={zoom?.src ?? null} caption={zoom?.caption} onClose={closeZoom} />
     </section>
   );
 }

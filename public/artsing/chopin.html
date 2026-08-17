@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chopin</title>
+    <script src="libraries/p5.min.js"></script>
+    <link rel="icon" href="imgs/icon2.png" type="image/png">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="artsing-responsive.css">
+</head>
+<body>
+    <!-- <div class="background"></div> -->
+
+    <header>
+        <div class="header-text">
+            <a href="index.html">ArtSing</a></div>
+        <div class="header-image" id="header-image">
+            <a href="/cas-etudes?projet=artsing">
+                <img src="imgs/icon.png" alt="Header Image">
+            </a>
+            <div class="tooltip" id="tooltip">ouvrir le portfolio du créateur</div>
+        </div>
+    </header>
+
+    <main>
+
+        <div id="titreC">
+            <p id="titre_oeuvre">Chopin</p>
+            <p id="titre_son">Un peu de haine</p>
+        </div>
+
+        <div class="karaoke_container">
+
+            <div class="left">
+                <video id="video" src="video/Chopin.mp4" playsinline preload="metadata"></video>
+                <div class="mute" id="muteBtn">
+                    <img src="imgs/mute.svg" alt="Mute">
+                </div>
+            </div>
+
+            <div class="karaoke_separator"></div>
+
+            <div class="right">
+
+                <div class="lyrics" id="lyrics-container">
+                    <div class="actual_lyric" id="current-lyrics"></div>
+                    <div class="next_lyric" id="next-lyrics"></div>
+                </div>
+
+                <div class="progress_bar">
+                    <div class="progress" id="progress"></div>
+                </div>
+
+                <div class="player">
+                    <div id="playPauseBtn">
+                        <img src="imgs/play.svg" alt="Play">
+                    </div>
+                </div>
+
+            </div>
+
+
+
+
+        </div>
+
+    </main>
+
+    <script src="chopin/karaoke_chopin.js"></script>
+    <!-- audiovisualision.js n'est volontairement pas chargé : voir
+         l'en-tête du fichier. Le décor de cette page est le rose du
+         body, comme sur la maquette d'origine. -->
+</body>
+</html>

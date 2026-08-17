@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { DEFAULT_CONTENT, type Content } from "./content";
+import { CONTENT_VERSION, DEFAULT_CONTENT, type Content } from "./content";
 import {
   currentSession,
   fetchContent,
@@ -64,13 +64,29 @@ function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
+/**
+ * True when a stored payload was written against the content model and the
+ * seeded copy that this build ships.
+ *
+ * A shallow merge is not enough to carry an old payload forward: `cases` is a
+ * single key, so a draft saved before two case studies were merged would put
+ * the old eight back wholesale. Rather than migrate, a payload from another
+ * version is dropped — the bundled content is the source of truth, and the
+ * admin drawer re-publishes it.
+ */
+function isCurrent(payload: Partial<Content> | null | undefined): boolean {
+  return payload?.version === CONTENT_VERSION;
+}
+
 function readLocal(): Content | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
+    const saved = JSON.parse(raw) as Partial<Content>;
+    if (!isCurrent(saved)) return null;
     // Shallow-merge so newly shipped default keys survive an old saved payload.
-    return { ...clone(DEFAULT_CONTENT), ...(JSON.parse(raw) as Partial<Content>) };
+    return { ...clone(DEFAULT_CONTENT), ...saved };
   } catch {
     return null;
   }
@@ -115,7 +131,10 @@ export function ContentProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
         setPublished(remote);
         setRemoteRead(true);
-        if (remote && !readLocal()) setContent(remote);
+        // A published payload from an older content version is kept as the
+        // comparison baseline — so the drawer shows "à publier" — but it is
+        // not adopted: this build's own content wins until it is republished.
+        if (remote && isCurrent(remote) && !readLocal()) setContent(remote);
       } catch (error) {
         if (cancelled) return;
         // Leave remoteRead false: publishing stays disabled until we have
@@ -184,7 +203,9 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     } catch {
       // ignore
     }
-    setContent(published ? clone(published) : clone(DEFAULT_CONTENT));
+    // Same rule as on load: a published payload from another version is not
+    // something we can go back to.
+    setContent(isCurrent(published) ? clone(published as Content) : clone(DEFAULT_CONTENT));
   }, [published]);
 
   const exportJSON = useCallback(() => {

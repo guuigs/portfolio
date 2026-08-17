@@ -1,0 +1,291 @@
+body {
+    z-index: -2;
+    background-size: cover;
+    background-color: #F1CEC8;
+    background-blend-mode: overlay;
+    font-family: "Instrument Serif", serif;
+    font-style: italic;
+    color: #D65713;
+    letter-spacing: -0.05em;
+    margin: 0;
+    overflow: hidden;
+}
+
+.background {
+    z-index: -1;
+    height: 100vh; /* Hauteur de l'écran */
+    width: 100vw; /* Largeur de l'écran */
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0.05;
+    background-image: url('imgs/icon2.png');
+    background-size: 60%;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+header {
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 30px;
+    color: #D65713;
+    font-style: normal;
+}
+
+main {
+    z-index: 1;
+}
+
+#titre {
+    font-family: "Inter", sans-serif;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 4vw;
+    margin-bottom: -10px; /* Espace de 60px en bas du premier titre */
+}
+
+#titre2 {
+    font-family: "Inter", sans-serif;
+    font-style: normal;
+    font-size: 4vw;
+    font-weight: 500;
+    margin-top: 0; /* Assurez-vous qu'il n'y a pas de marge supplémentaire en haut du deuxième titre */
+}
+
+.header-text {
+    font-size: 2vw;
+}
+
+.header-text a {
+    color: inherit; /* Utilise la couleur héritée du parent */
+    text-decoration: none; /* Supprime le soulignement */
+    font-family: inherit; /* Utilise la police héritée du parent */
+    font-style: inherit; /* Utilise le style de police hérité du parent */
+}
+
+.header-image img {
+    height: 4vh;
+    width: auto;
+}
+
+.title {
+    text-align: center;
+    color: #D65713;
+}
+
+
+
+/* ----------------------------- */
+
+.columns {
+    display: flex;
+    justify-content: center;
+    gap: 5%;
+    margin-top: -3%;
+}
+
+
+.card {
+    width: 20%;
+    height: auto;
+    color: #D65713;
+    transition: transform 0.1s ease-out;
+    will-change: transform;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.card a {
+    color: inherit; /* Utilise la couleur héritée du parent */
+    text-decoration: none; /* Supprime le soulignement */
+    font-family: inherit; /* Utilise la police héritée du parent */
+    font-style: inherit; /* Utilise le style de police hérité du parent */
+}
+
+#celebrity {
+    font-size: 1.5vw;
+    width: 100%;
+    text-align: left;
+    margin-bottom: -0.5%;
+    font-size: 1.7vw;
+}   
+
+.card img {
+    width: 100%;
+    height: auto;
+}
+
+#music-name {
+    font-size: 1.5vw;
+    font-family: "Inter", sans-serif;
+    font-style: normal;
+    width: 100%;
+    text-align: right;
+    margin-top: -1%;
+}
+
+
+.tooltip {
+    position: absolute;
+    background-color: #ffffff;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
+    display: none;
+    font-size: 18px;
+  }
+
+
+  /* --------------------------PLAYER----------------------------- */
+
+  #titreC {
+    /* background-color: red; */
+    display: flex;
+    flex-direction: column; /* Arrange children in a column */
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    margin-top: 30px; /* Remove bottom margin */
+    gap: 0; /* Supprime tout espace entre les enfants */
+}
+
+#titre_oeuvre {
+    margin-top: 0; /* Remove top margin */
+    margin-bottom: 10px; /* Remove top margin */
+    /* background-color: blue; */
+    font-family: "Instrument Serif";
+    font-style: italic;
+    font-size: clamp(2.5rem, 4.5vw, 3.5rem); /* Contrôle la taille maximale de la police */
+    font-weight: 500;
+    line-height: 1;
+}
+
+#titre_son {
+    margin-top: 0; /* Remove top margin */
+    margin-bottom: 0; /* Remove top margin */
+    /* background-color: green; */
+    font-family: "Inter", sans-serif;
+    font-style: normal;
+    font-size: clamp(2rem, 4vw, 3rem); /* Contrôle la taille maximale de la police */
+    font-weight: 500;
+    text-align: center; /* Align text to the center */
+    line-height: 1;
+}
+
+.karaoke_container {
+    margin: 0 auto; /* Centre horizontalement */
+    margin-top: 10vh;
+    width: 80%; /* Prend 80% de la largeur du conteneur parent */
+    max-width: 750px; /* Bloque à 800px */
+    display: flex; /* Active le mode flexbox */
+    justify-content: center; /* Centre les contenus horizontalement */
+    align-items: center; /* Centre les contenus verticalement */
+    gap: 2%; /* Ajoute un petit espace entre les colonnes */
+}
+
+.left,
+.right {
+    width: 650px; /* Chaque colonne prend 48% de la largeur */
+}
+
+.karaoke_separator {
+    width: 10px; /* L'espace entre les colonnes */
+}
+
+video {
+    width: auto;
+    height: 50vh;
+    border-radius: 10px;
+    margin-top: 2%;
+}
+
+.left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end; /* Aligne les contenus à gauche */
+}
+
+.right {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 20px;
+}
+
+.mute {
+    margin-top: -10%;
+    padding-right: 5px;
+    z-index: 5;
+}
+
+.mute img {
+width: 30px;
+height: 30px;
+cursor: pointer;
+}
+
+.progress_bar {
+    width: 100%;
+    height: 7px;
+    background-color: #F29C9C;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-top: 50px;
+}
+
+.progress {
+    height: 100%;
+    width: 0;
+    background-color: #D65713;
+    border-radius: 5px;
+    transition: width 0.1s;
+}
+
+.player {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 10px;
+}
+
+#playPauseBtn {
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+}
+
+
+
+/* --------------Le KARAOKE-------------- */
+
+.lyrics {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+}
+.actual_lyric {
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-weight: 600;
+    font-size: 40px;
+    opacity: 1;
+    transition: opacity 0.5s, font-size 0.5s;
+    text-align: center;
+}
+.next_lyric {
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 30px;
+    opacity: 0.75;
+    transition: opacity 0.5s, font-size 0.5s;
+    text-align: center;
+    margin-top: 30px;
+}

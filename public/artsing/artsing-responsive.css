@@ -1,0 +1,171 @@
+/* ============================================================================
+   ArtSing — couche d'archivage (2026)
+   ----------------------------------------------------------------------------
+   ArtSing a été écrit pour un écran d'ordinateur, à une époque où le site
+   vivait seul sur son propre domaine. Le HTML, le CSS et le JavaScript
+   d'origine sont conservés ; ce fichier est chargé APRÈS style.css et ne fait
+   que deux choses :
+
+     1. rendre la page utilisable au doigt et sous 900 px de large — la
+        feuille d'origine ne contient aucune media query, et tout y est
+        dimensionné en `vw` ;
+     2. rétablir le focus clavier, qui n'était géré nulle part.
+
+   Tout est enfermé dans des media queries : au-dessus de 900 px sur un écran
+   à pointeur fin, le rendu est celui d'origine, au pixel près.
+   ========================================================================= */
+
+/* --- Focus clavier ------------------------------------------------------- */
+
+a:focus-visible,
+[id$="Btn"]:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 4px;
+    border-radius: 4px;
+}
+
+/* --- Écrans tactiles ----------------------------------------------------- */
+
+@media (pointer: coarse) {
+    /* L'infobulle suit le curseur : sans curseur, elle se fige n'importe où. */
+    .tooltip {
+        display: none !important;
+    }
+}
+
+/* --- Téléphones et petites tablettes ------------------------------------- */
+
+@media (max-width: 900px) {
+    body {
+        /* `overflow: hidden` supposait que tout tenait dans un écran large.
+           En colonne, il faut pouvoir descendre jusqu'au bouton play. */
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    /* Le canvas p5 est en position absolue à la taille de la fenêtre : dès que
+       la page défile, il laisse apparaître le fond du body sous lui. Le fond
+       du body reprend la main, ce qui évite une bande noire à mi-hauteur. */
+    canvas.p5Canvas {
+        display: none;
+    }
+
+    header {
+        padding: 16px 18px;
+    }
+
+    .header-text {
+        font-size: 22px;
+    }
+
+    .header-image img {
+        height: 28px;
+    }
+
+    /* Accueil ------------------------------------------------------------- */
+
+    #titre,
+    #titre2 {
+        font-size: 34px;
+    }
+
+    #titre span {
+        font-size: 40px !important;
+    }
+
+    .columns {
+        flex-direction: column;
+        align-items: center;
+        gap: 28px;
+        margin-top: 24px;
+        padding-bottom: 40px;
+    }
+
+    .card {
+        width: min(72vw, 320px);
+    }
+
+    /* Le tilt est piloté par mousemove : sans souris il ne se déclenche pas,
+       et la transition laissée active ne sert plus à rien. */
+    .card {
+        transition: none;
+        transform: none !important;
+    }
+
+    #celebrity {
+        font-size: 20px;
+    }
+
+    #music-name {
+        font-size: 18px;
+    }
+
+    /* Karaoké -------------------------------------------------------------- */
+
+    #titreC {
+        margin-top: 16px;
+        padding: 0 16px;
+    }
+
+    .karaoke_container {
+        flex-direction: column;
+        width: 92%;
+        margin-top: 24px;
+        gap: 24px;
+        padding-bottom: 48px;
+    }
+
+    .left,
+    .right {
+        width: 100%;
+    }
+
+    .left {
+        align-items: center;
+    }
+
+    video {
+        height: auto;
+        width: min(78vw, 320px);
+        max-width: 100%;
+    }
+
+    .mute {
+        margin-top: -52px;
+        padding-right: 0;
+        margin-left: min(60vw, 250px);
+    }
+
+    .karaoke_separator {
+        display: none;
+    }
+
+    .lyrics {
+        height: auto;
+        min-height: 150px;
+        padding: 0 8px;
+    }
+
+    .actual_lyric {
+        font-size: 24px;
+    }
+
+    .next_lyric {
+        font-size: 17px;
+        margin-top: 16px;
+    }
+
+    .progress_bar {
+        margin-top: 24px;
+    }
+
+    #playPauseBtn {
+        width: 44px;
+        height: 44px;
+    }
+
+    #playPauseBtn img {
+        width: 100%;
+        height: 100%;
+    }
+}

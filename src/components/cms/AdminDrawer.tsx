@@ -3,6 +3,7 @@ import {
   ArrowDown,
   ArrowUp,
   Download,
+  Heading,
   ImagePlus,
   Plus,
   CloudUpload,
@@ -447,6 +448,14 @@ function BlockEditor({
         </span>
       </div>
 
+      {block.type === "heading" && (
+        <Field
+          label="intertitre"
+          value={block.value}
+          onCommit={(value) => setField(`${path}.value`, value)}
+        />
+      )}
+
       {block.type === "text" && (
         <Field
           label="texte"
@@ -469,6 +478,12 @@ function BlockEditor({
             label="légende"
             value={block.caption ?? ""}
             onCommit={(value) => setField(`${path}.caption`, value)}
+          />
+          <Field
+            label="proportions"
+            value={block.ratio ?? ""}
+            onCommit={(value) => setField(`${path}.ratio`, value.trim() || undefined)}
+            hint="Laisser vide pour le 4/3 du site. Sinon « largeur / hauteur », par ex. 16 / 9."
           />
         </>
       )}
@@ -554,6 +569,31 @@ function CasEtudesPanel({ store, activeId }: { store: ContentStore; activeId: st
           value={study.date}
           onCommit={(value) => setField(`cases.${index}.date`, value)}
         />
+        <Field
+          label="chapô"
+          multiline
+          rows={3}
+          value={study.summary ?? ""}
+          onCommit={(value) => setField(`cases.${index}.summary`, value)}
+          hint="Une ou deux phrases sous le titre, avant l’article."
+        />
+        <Field
+          label="fiche technique"
+          multiline
+          rows={4}
+          value={(study.meta ?? []).map((entry) => `${entry.label} : ${entry.value}`).join("\n")}
+          onCommit={(value) =>
+            setField(
+              `cases.${index}.meta`,
+              value
+                .split("\n")
+                .map((line) => line.split(/\s*:\s*(.+)/s))
+                .filter((parts) => parts[0]?.trim() && parts[1]?.trim())
+                .map((parts) => ({ label: parts[0].trim(), value: parts[1].trim() })),
+            )
+          }
+          hint="Une ligne par entrée, au format « rôle : direction artistique »."
+        />
         <ImageField
           label="vignette"
           value={study.thumb}
@@ -581,6 +621,14 @@ function CasEtudesPanel({ store, activeId }: { store: ContentStore; activeId: st
         ))}
 
         <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setBlocks([...blocks, { type: "heading", value: "" }])}
+          >
+            <Heading size={14} strokeWidth={1.75} aria-hidden="true" />
+            intertitre
+          </Button>
           <Button
             size="sm"
             variant="ghost"
