@@ -18,7 +18,12 @@ import {
   supabase,
 } from "./supabase";
 
-const STORAGE_KEY = "guilhem-portfolio-content-v2";
+/* v3 : la clé v2 a été écrite par une version qui persistait le contenu dès
+   le premier rendu, brouillon ou pas. Tout navigateur ayant visité le site en
+   porte donc une, et la garder reviendrait à faire gagner un faux brouillon
+   sur le contenu publié — précisément le bug corrigé ici. On repart propre. */
+const STORAGE_KEY = "guilhem-portfolio-content-v3";
+const LEGACY_STORAGE_KEYS = ["guilhem-portfolio-content-v2"];
 
 export type PublishState = "idle" | "publishing" | "done" | "error";
 
@@ -81,6 +86,7 @@ function isCurrent(payload: Partial<Content> | null | undefined): boolean {
 function readLocal(): Content | null {
   if (typeof window === "undefined") return null;
   try {
+    for (const key of LEGACY_STORAGE_KEYS) window.localStorage.removeItem(key);
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const saved = JSON.parse(raw) as Partial<Content>;
@@ -106,9 +112,23 @@ function setByPath(target: Content, path: string, value: unknown): void {
 const same = (a: Content, b: Content) => JSON.stringify(a) === JSON.stringify(b);
 
 export function ContentProvider({ children }: { children: ReactNode }) {
+  /* Lu une seule fois, au tout premier rendu — avant que l'effet de
+     persistance plus bas ait pu écrire quoi que ce soit. C'est la correction
+     centrale : la version précédente rappelait `readLocal()` au retour du
+     réseau, à un moment où elle trouvait forcément la valeur que l'effet de
+     persistance venait d'écrire. La condition « pas de brouillon local » ne
+     pouvait donc plus jamais être vraie, et le contenu publié dans Supabase
+     n'était jamais adopté : on pouvait publier, mais plus personne ne lisait. */
+  const [initialDraft] = useState<Content | null>(readLocal);
+
   // Start from the bundled content (or a local draft) synchronously, so the
   // first paint never waits on the network and never flashes empty.
-  const [content, setContent] = useState<Content>(() => readLocal() ?? clone(DEFAULT_CONTENT));
+  const [content, setContent] = useState<Content>(() => initialDraft ?? clone(DEFAULT_CONTENT));
+
+  /* Un brouillon n'existe qu'à partir d'une vraie modification. Sans ce
+     drapeau, ouvrir la page suffisait à en fabriquer un. */
+  const [hasDraft, setHasDraft] = useState(initialDraft !== null);
+
   const [published, setPublished] = useState<Content | null>(null);
   // `published === null` is ambiguous on its own — it means both "not read
   // yet" and "nothing has ever been published". Keeping them apart is what
@@ -134,7 +154,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
         // A published payload from an older content version is kept as the
         // comparison baseline — so the drawer shows "à publier" — but it is
         // not adopted: this build's own content wins until it is republished.
-        if (remote && isCurrent(remote) && !readLocal()) setContent(remote);
+        if (remote && isCurrent(remote) && !initialDraft) setContent(clone(remote));
       } catch (error) {
         if (cancelled) return;
         // Leave remoteRead false: publishing stays disabled until we have
@@ -159,14 +179,28 @@ export function ContentProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Rien à sauvegarder tant que l'utilisateur n'a rien changé : écrire ici
+    // sans condition, c'était fabriquer un brouillon à chaque visite.
+    if (!hasDraft) return;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(content));
     } catch {
       // Storage full or blocked (private mode) — editing still works in-memory.
     }
-  }, [content]);
+  }, [content, hasDraft]);
+
+  /** Le brouillon n'a plus lieu d'être : publié, jeté, ou remis à zéro. */
+  const clearDraft = useCallback(() => {
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+    setHasDraft(false);
+  }, []);
 
   const setField = useCallback((path: string, value: unknown) => {
+    setHasDraft(true);
     setContent((current) => {
       const next = clone(current);
       setByPath(next, path, value);
@@ -175,6 +209,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addItem = useCallback<ContentStore["addItem"]>((collection, item) => {
+    setHasDraft(true);
     setContent((current) => ({
       ...current,
       [collection]: [...current[collection], item],
@@ -182,6 +217,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const removeItem = useCallback<ContentStore["removeItem"]>((collection, index) => {
+    setHasDraft(true);
     setContent((current) => ({
       ...current,
       [collection]: current[collection].filter((_, i) => i !== index),
@@ -189,24 +225,16 @@ export function ContentProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const reset = useCallback(() => {
-    try {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // ignore
-    }
+    clearDraft();
     setContent(clone(DEFAULT_CONTENT));
-  }, []);
+  }, [clearDraft]);
 
   const discardDraft = useCallback(() => {
-    try {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // ignore
-    }
+    clearDraft();
     // Same rule as on load: a published payload from another version is not
     // something we can go back to.
     setContent(isCurrent(published) ? clone(published as Content) : clone(DEFAULT_CONTENT));
-  }, [published]);
+  }, [clearDraft, published]);
 
   const exportJSON = useCallback(() => {
     const blob = new Blob([JSON.stringify(content, null, 2)], {
@@ -226,13 +254,17 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     try {
       await publishContent(content);
       setPublished(clone(content));
+      // Ce qui vient d'être publié n'est plus un brouillon : garder la clé
+      // ferait gagner une copie locale sur la version en ligne au rechargement
+      // suivant, y compris après une modification faite depuis un autre poste.
+      clearDraft();
       setPublishState("done");
       window.setTimeout(() => setPublishState("idle"), 2500);
     } catch (error) {
       setPublishError(error instanceof Error ? error.message : String(error));
       setPublishState("error");
     }
-  }, [content]);
+  }, [clearDraft, content]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     await remoteSignIn(email, password);
