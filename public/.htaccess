@@ -16,6 +16,13 @@
   RewriteRule ^ index.html [L]
 </IfModule>
 
+# L'Apache d'OVH ne connaît pas .woff2 et sert la police sans Content-Type.
+# Les navigateurs la reconnaissent malgré tout à sa signature « wOF2 », mais
+# une déclaration explicite évite d'en dépendre.
+<IfModule mod_mime.c>
+  AddType font/woff2 .woff2
+</IfModule>
+
 # Build assets carry a content hash, and the ArtSing archive is frozen by
 # definition — both can be cached hard. The HTML entry points never are.
 <IfModule mod_headers.c>
