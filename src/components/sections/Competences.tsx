@@ -16,8 +16,7 @@ export interface CompetencesProps {
 function Rail({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-3">
-      {/* Sans, not mono: these two labels were the "terminal → sans" swap. */}
-      <h4 className="overline-sans">{label}</h4>
+      <h4 className="overline">{label}</h4>
       <div className="rail-mask -mx-1">
         <div className="no-scrollbar flex gap-2 overflow-x-auto px-1 py-1">{children}</div>
       </div>

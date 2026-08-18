@@ -3,6 +3,7 @@ import {
   ArrowDown,
   ArrowUp,
   Download,
+  FileText,
   Heading,
   ImagePlus,
   Plus,
@@ -15,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { useContentStore, type ContentStore } from "@/lib/store";
-import { uploadImage } from "@/lib/supabase";
+import { uploadFile } from "@/lib/supabase";
 import type { Block, CaseStudy } from "@/lib/content";
 import type { SectionId } from "@/lib/router";
 import { Button } from "@/components/ui/Button";
@@ -111,15 +112,23 @@ function Field({
  * Typing a URL still works — that is how the bundled assets stay reachable —
  * but uploading pushes the file to Supabase Storage and writes back a public
  * URL that survives a rebuild, unlike Vite's hashed asset names.
+ *
+ * `accept` is what makes this usable for the CV: the upload itself was always
+ * type-agnostic, only the picker was pinned to images. Anything that is not an
+ * image previews as a named document rather than a broken thumbnail.
  */
-function ImageField({
+function FileField({
   label,
   value,
   onCommit,
+  accept = "image/*",
+  hint,
 }: {
   label: string;
   value: string;
   onCommit: (value: string) => void;
+  accept?: string;
+  hint?: string;
 }) {
   const { remoteEnabled, adminEmail } = useContentStore();
   const [busy, setBusy] = useState(false);
@@ -133,7 +142,7 @@ function ImageField({
     setBusy(true);
     setError(null);
     try {
-      onCommit(await uploadImage(file));
+      onCommit(await uploadFile(file));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -142,25 +151,46 @@ function ImageField({
     }
   };
 
+  // Query strings and Storage paths both end in the real extension, so a
+  // suffix test is enough here and avoids a HEAD request just to draw a chip.
+  const isImage = /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(value);
+
   return (
     <div className="flex flex-col gap-2">
       <Field label={label} value={value} onCommit={onCommit} />
 
       <div className="flex items-center gap-2">
-        {value && (
-          <img
-            src={value}
-            alt=""
-            className="size-10 shrink-0 rounded border border-line object-cover"
-          />
-        )}
+        {value &&
+          (isImage ? (
+            <img
+              src={value}
+              alt=""
+              className="size-10 shrink-0 rounded border border-line object-cover"
+            />
+          ) : (
+            <a
+              href={value}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="
+                inline-flex min-w-0 items-center gap-1.5 rounded border border-line
+                px-2 py-1.5 text-[11px] text-fg-muted
+                transition-colors duration-150 ease-out hover:border-line-strong
+              "
+            >
+              <FileText size={13} strokeWidth={1.75} aria-hidden="true" />
+              <span className="truncate">
+                {decodeURIComponent(value.split("/").pop()?.split("?")[0] ?? value)}
+              </span>
+            </a>
+          ))}
 
         {canUpload ? (
           <>
             <input
               ref={inputRef}
               type="file"
-              accept="image/*"
+              accept={accept}
               className="sr-only"
               id={`upload-${label}-${value.slice(-12)}`}
               onChange={(event) => void onPick(event.target.files?.[0])}
@@ -182,6 +212,7 @@ function ImageField({
         )}
       </div>
 
+      {hint && <p className="text-[11px] leading-snug text-fg-faint">{hint}</p>}
       {error && <p className="text-[11px] text-red-700">{error}</p>}
     </div>
   );
@@ -286,17 +317,32 @@ function HomePanel({ store }: { store: ContentStore }) {
           value={profile.heroIntro}
           onCommit={(value) => setField("profile.heroIntro", value)}
         />
-        <ImageField
+        <FileField
           label="visuel d’accueil"
           value={profile.heroImage}
           onCommit={(value) => setField("profile.heroImage", value)}
+          accept="image/*"
+          hint="PNG, JPG ou GIF animé. Le cadre s’adapte au format du fichier."
         />
       </Group>
 
       {/* Header and footer live here rather than in their own panel: they are
           global chrome, and the brief asked for them under the home section. */}
       <Group title="En-tête · liens" open={false}>
-        <Field label="cv" value={socials.cv} onCommit={(v) => setField("socials.cv", v)} />
+        <FileField
+          label="logo (optionnel)"
+          value={profile.logo ?? ""}
+          onCommit={(v) => setField("profile.logo", v)}
+          accept="image/*"
+          hint="Sert à la fois au header et à l’icône d’onglet. Laisser vide pour garder le logo vectoriel. Un GIF marche ; viser ~96 px de haut minimum, et un cadrage proche du carré pour rester lisible en favicon."
+        />
+        <FileField
+          label="cv (pdf)"
+          value={socials.cv}
+          onCommit={(v) => setField("socials.cv", v)}
+          accept="application/pdf,.pdf"
+          hint="Téléverser remplace le CV du bouton « mon cv » sans redéploiement. Publiez ensuite pour que le changement soit visible."
+        />
         <Field
           label="linkedin"
           value={socials.linkedin}
@@ -469,7 +515,7 @@ function BlockEditor({
 
       {block.type === "image" && (
         <>
-          <ImageField
+          <FileField
             label="image"
             value={block.value}
             onCommit={(value) => setField(`${path}.value`, value)}
@@ -594,7 +640,7 @@ function CasEtudesPanel({ store, activeId }: { store: ContentStore; activeId: st
           }
           hint="Une ligne par entrée, au format « rôle : direction artistique »."
         />
-        <ImageField
+        <FileField
           label="vignette"
           value={study.thumb}
           onCommit={(value) => setField(`cases.${index}.thumb`, value)}
@@ -743,7 +789,7 @@ function CoupsDeCoeurPanel({ store, activeId }: { store: ContentStore; activeId:
             value={like.link}
             onCommit={(value) => setField(`likes.${index}.link`, value)}
           />
-          <ImageField
+          <FileField
             label="visuel"
             value={like.image}
             onCommit={(value) => setField(`likes.${index}.image`, value)}
@@ -835,7 +881,7 @@ function MigrateImages({ store }: { store: ContentStore }) {
         if (!response.ok) throw new Error(String(response.status));
         const blob = await response.blob();
         const name = url.split("/").pop() ?? "image";
-        setField(path, await uploadImage(new File([blob], name, { type: blob.type })));
+        setField(path, await uploadFile(new File([blob], name, { type: blob.type })));
         done += 1;
       } catch {
         failed += 1;

@@ -20,8 +20,24 @@ const PATHS = [
 ];
 
 /** The real wordmark from the source repo, redrawn in `currentColor` so it
- *  inherits the monochrome palette instead of hard-coding the brand blue. */
-export function Wordmark({ className }: { className?: string }) {
+ *  inherits the monochrome palette instead of hard-coding the brand blue.
+ *
+ *  `src` overrides it with an uploaded file (a GIF, in practice). The vector
+ *  stays the default because it is sharp at any density and follows the text
+ *  colour; a bitmap can do neither, so it has to be opted into. */
+export function Wordmark({ className, src }: { className?: string; src?: string }) {
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt="Guilhem Terrier"
+        // The height comes from `className` (h-5); width follows the file's
+        // own proportions instead of being squeezed into the SVG's 113:40.
+        className={className}
+      />
+    );
+  }
+
   return (
     <svg
       viewBox="0 0 113 40"

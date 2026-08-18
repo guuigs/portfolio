@@ -1,16 +1,31 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------
+   Departure Mono (Helena Zhang, SIL OFL) — self-hosted.
+   The file lives in src/assets/, so Vite fingerprints it and
+   emits it into build/assets/ alongside the CSS: no external
+   request, no separate deploy step, cache-busted on change.
+   ------------------------------------------------------------ */
+@font-face {
+  font-family: "Departure Mono";
+  src: url("./assets/fonts/DepartureMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ============================================================
    Guilhem Terrier — portfolio
    Direction: Vercel-like. Quasi-monochrome, hairline borders,
    small radii, near-zero shadows, one accent used sparingly.
-   Type is Geist / Geist Mono throughout — no serif.
+   Display voice is Geist; every secondary tier (labels, chips,
+   captions, dates, meta) is Departure Mono.
    ============================================================ */
 
 @theme {
   /* ---------- Type ---------- */
   --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-mono: "Departure Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* ---------- Neutral ramp ----------
      Near-monochrome, with a barely-there warm tint (hue 40°) so the
@@ -69,7 +84,7 @@
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Geist is loaded in index.html, with preconnect hints and display=swap. */
+/* Geist is loaded in index.html; Departure Mono is bundled (see @font-face). */
 
 @layer base {
   :root {
@@ -192,18 +207,6 @@
     color: var(--color-fg-faint);
   }
 
-  /* Same role as .overline, in the sans face. Used where the brief asked to
-     move a label off the terminal voice. */
-  .overline-sans {
-    font-family: var(--font-sans);
-    font-size: 11px;
-    font-weight: 600;
-    line-height: 1;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--color-fg-faint);
-  }
-
   /* The carousel runs past both edges of the viewport; fade rather than cut. */
   .carousel-mask {
     mask-image: linear-gradient(
@@ -235,7 +238,7 @@
 
   /* AsciiEffect calibrates its letter-spacing against 'courier new' at a
      computed font-size, so its inline font stack is left alone — swapping in
-     Geist Mono desynchronises the character grid from the image width. */
+     a different mono desynchronises the character grid from the image width. */
   .ascii-stage {
     display: grid;
     place-items: center;

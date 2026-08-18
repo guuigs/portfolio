@@ -60,25 +60,45 @@ export async function publishContent(content: Content): Promise<void> {
 }
 
 /**
- * Uploads an image and returns its public URL.
+ * Uploads a file — image or document — and returns its public URL.
  *
  * The name is prefixed with a timestamp rather than reusing the file's own
  * name: two uploads called `cover.jpg` would otherwise overwrite each other,
- * and the second would silently replace an image still used elsewhere.
+ * and the second would silently replace a file still used elsewhere. For the
+ * CV that timestamp doubles as a cache-buster: a visitor who already opened
+ * the old PDF gets the new one instead of a stale copy.
+ *
+ * `contentType` is passed explicitly because a File picked on some platforms
+ * arrives with an empty `type`, and Storage would then serve it as
+ * `application/octet-stream` — which makes a browser download the PDF
+ * instead of displaying it.
  */
-export async function uploadImage(file: File): Promise<string> {
+export async function uploadFile(file: File): Promise<string> {
   if (!supabase) throw new Error("Supabase n’est pas configuré.");
 
   const safe = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
   const path = `${Date.now()}-${safe}`;
 
-  const { error } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, file, { cacheControl: "31536000", upsert: false });
+  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+    cacheControl: "31536000",
+    upsert: false,
+    contentType: file.type || guessType(safe),
+  });
 
   if (error) throw new Error(error.message);
 
   return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+/** Minimal extension→MIME map, for the browsers that hand over an empty type. */
+function guessType(name: string): string {
+  if (name.endsWith(".pdf")) return "application/pdf";
+  if (name.endsWith(".png")) return "image/png";
+  if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return "image/jpeg";
+  if (name.endsWith(".gif")) return "image/gif";
+  if (name.endsWith(".webp")) return "image/webp";
+  if (name.endsWith(".svg")) return "image/svg+xml";
+  return "application/octet-stream";
 }
 
 export interface AdminSession {

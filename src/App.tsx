@@ -15,6 +15,11 @@ import { hrefFor, useRoute } from "@/lib/router";
 import { withViewTransition } from "@/lib/view-transition";
 import { cn } from "@/lib/utils";
 
+/** The square mark in `public/`, used whenever no logo has been uploaded —
+ *  the default header wordmark is 113×40 and would be an unreadable sliver
+ *  once squeezed into a 16px tab icon. */
+const FALLBACK_FAVICON = "/logo-reduit.png";
+
 const SECTION_TITLES: Record<string, string> = {
   home: "Guilhem Terrier — portfolio",
   competences: "Compétences — Guilhem Terrier",
@@ -54,6 +59,22 @@ function Portfolio() {
   useEffect(() => {
     document.title = SECTION_TITLES[route.section] ?? SECTION_TITLES.home;
   }, [route.section]);
+
+  // The tab icon follows the header logo, so uploading one changes both and
+  // the two can never drift apart. index.html keeps its own <link> for the
+  // moment before React boots — otherwise the tab flashes the default globe.
+  const logo = content.profile.logo;
+  useEffect(() => {
+    // Replaced rather than mutated: Safari holds on to the icon it first
+    // resolved and ignores a changed `href` on the existing element.
+    document.querySelectorAll('link[rel~="icon"]').forEach((node) => node.remove());
+    const link = document.createElement("link");
+    link.rel = "icon";
+    // No `type`: an uploaded file may be a PNG, a GIF or an SVG, and a stale
+    // type on the wrong one stops the browser drawing it at all.
+    link.href = logo || FALLBACK_FAVICON;
+    document.head.appendChild(link);
+  }, [logo]);
 
   const go = useCallback(
     (href: string) => {
@@ -96,7 +117,7 @@ function Portfolio() {
         Aller au contenu
       </a>
 
-      <Header socials={content.socials} onNavigate={go} />
+      <Header socials={content.socials} logo={content.profile.logo} onNavigate={go} />
 
       <main id="contenu" className="flex-1">
         {/* Persistent hero — the title and the three buttons stay put across

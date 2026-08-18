@@ -112,6 +112,13 @@ export interface Profile {
   heroTitle: string;
   heroIntro: string;
   heroImage: string;
+  /**
+   * Optional replacement for the SVG wordmark in the header — a GIF, typically.
+   * Left empty the vector logo is used, so this stays a reversible experiment
+   * rather than a one-way swap. Optional on purpose: making it required would
+   * bump CONTENT_VERSION and throw away the payload already published.
+   */
+  logo?: string;
   footerName: string;
   footerLine: string;
   /** The paragraph under the footer heading. Supports [texte](url) links. */

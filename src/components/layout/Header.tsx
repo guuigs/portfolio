@@ -5,6 +5,8 @@ import { Wordmark } from "./Wordmark";
 
 export interface HeaderProps {
   socials: Socials;
+  /** Uploaded logo; falls back to the SVG wordmark when empty. */
+  logo?: string;
   onNavigate: (href: string) => void;
 }
 
@@ -12,7 +14,7 @@ const ICON_LINK =
   "inline-flex size-11 sm:size-9 items-center justify-center rounded-md text-fg-muted " +
   "transition-[background-color,color] duration-150 ease-out hover:bg-gray-100 hover:text-fg";
 
-export function Header({ socials, onNavigate }: HeaderProps) {
+export function Header({ socials, logo, onNavigate }: HeaderProps) {
   const homeHref = hrefFor("home");
 
   return (
@@ -37,7 +39,10 @@ export function Header({ socials, onNavigate }: HeaderProps) {
             transition-opacity duration-150 ease-out hover:opacity-70
           "
         >
-          <Wordmark className="h-5 w-auto" />
+          {/* 32px inside the 64px bar: 1.6× the old 20px, and the tallest the
+              wordmark can go while leaving the 16px of air the header needs
+              above and below it. The bar's own height is untouched. */}
+          <Wordmark className="h-8 w-auto" src={logo} />
         </a>
 
         <nav aria-label="Réseaux" className="flex items-center gap-0.5">
