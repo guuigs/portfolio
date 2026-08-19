@@ -90,6 +90,65 @@ export async function uploadFile(file: File): Promise<string> {
   return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
+export interface MediaObject {
+  /** Object key inside the bucket, e.g. `1755512345678-logo.png`. */
+  name: string;
+  url: string;
+  size: number;
+  createdAt: string;
+  /** The name as uploaded, with the timestamp prefix removed. */
+  original: string;
+}
+
+/**
+ * Lists everything in the media bucket.
+ *
+ * Storage caps a listing at 100 rows, so this pages until a short page comes
+ * back — a bucket that has accumulated re-uploads is exactly the case where
+ * the first page is not the whole story.
+ */
+export async function listMedia(): Promise<MediaObject[]> {
+  if (!supabase) return [];
+
+  const found: MediaObject[] = [];
+  const pageSize = 100;
+
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase.storage
+      .from(BUCKET)
+      .list("", { limit: pageSize, offset, sortBy: { column: "created_at", order: "asc" } });
+
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) break;
+
+    for (const item of data) {
+      // A folder placeholder has no metadata; skip it rather than offering to
+      // delete something that is not a file.
+      if (!item.metadata) continue;
+      found.push({
+        name: item.name,
+        url: supabase.storage.from(BUCKET).getPublicUrl(item.name).data.publicUrl,
+        size: Number(item.metadata.size ?? 0),
+        createdAt: item.created_at ?? "",
+        original: item.name.replace(/^\d{10,}-/, ""),
+      });
+    }
+
+    if (data.length < pageSize) break;
+  }
+
+  return found;
+}
+
+/** Deletes objects from the media bucket. Requires the admin session. */
+export async function removeMedia(names: string[]): Promise<void> {
+  if (!supabase) throw new Error("Supabase n’est pas configuré.");
+  if (names.length === 0) return;
+
+  const { error } = await supabase.storage.from(BUCKET).remove(names);
+  if (error) throw new Error(error.message);
+}
+
 /** Minimal extension→MIME map, for the browsers that hand over an empty type. */
 function guessType(name: string): string {
   if (name.endsWith(".pdf")) return "application/pdf";

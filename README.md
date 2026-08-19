@@ -106,6 +106,51 @@ Dans le panneau, `publier` pousse le document vers Supabase et met le site à
 jour pour tout le monde, sans redéploiement. `annuler le brouillon` revient à
 la dernière version publiée.
 
+### Ce qu'une montée de version emporte
+
+`CONTENT_VERSION` existe parce que la forme du contenu bouge : `cases` est une
+seule clé, et adopter telle quelle une charge publiée avant une restructuration
+remettrait les anciens articles en bloc.
+
+La première version de ce garde-fou rejetait la charge **entière** dès que le
+numéro ne correspondait plus. Le coût dépassait de loin ce qu'il protégeait :
+`cases` était la seule clé dont le modèle avait bougé, mais le texte d'accueil,
+le logo de l'en-tête, le pied de page, les liens et les coups de cœur partaient
+avec — **y compris toutes les URLs d'images déjà téléversées dans Storage**, qu'il
+fallait donc re-téléverser. Rien n'était supprimé : la ligne Supabase était lue
+puis jetée à chaque chargement, ce qui de l'extérieur ne se distingue pas d'une
+perte de données.
+
+Le tri se fait donc **clé par clé**, dans `migrate()` (`src/lib/store.tsx`) :
+
+```
+CARRIED_KEYS = profile, socials, likes    reprises quelle que soit la version
+cases, skills                             reprises du build si la version diffère
+```
+
+Une clé n'est reprise que si elle ressemble encore à ce qu'elle remplace, pour
+qu'une charge tronquée ou éditée à la main retombe sur la copie embarquée au
+lieu d'afficher `undefined`. Ajouter une clé à `CARRIED_KEYS` est un engagement :
+sa forme ne doit plus jamais changer sans migration explicite.
+
+Une charge d'une version antérieure reste la référence de comparaison, donc le
+panneau affiche « à publier » et explique ce qui a été repris. Republier est ce
+qui met fin à la migration à chaque chargement.
+
+### Doublons dans le bucket
+
+`uploadFile` préfixe chaque objet d'un horodatage : deux fichiers nommés
+`logo.png` ne peuvent pas s'écraser, et un téléversement ne casse jamais une URL
+déjà servie. La contrepartie est que **re-téléverser la même image ne remplace
+rien, elle s'ajoute** — un cycle de perte/restauration laisse donc autant de
+copies derrière lui.
+
+Le groupe « Inventaire des médias » du panneau les rend visibles : nombre
+d'objets, poids total, fichiers téléversés plusieurs fois, et les objets que
+plus aucune URL du contenu ne référence, avec leur vignette et une suppression
+en deux temps. La comparaison porte sur ce qui est à l'écran : publiez avant de
+purger si votre brouillon touche aux images.
+
 ### Images
 
 Les images téléversées depuis le CMS vont dans le bucket `media` et reçoivent
@@ -138,8 +183,8 @@ plein écran sur les images, et le `ratio` déclaré par image — sans lui, une
 planche de maquettes est recadrée en 4/3 et ses écrans deviennent illisibles.
 
 `CONTENT_VERSION` protège le contrat : la forme ayant changé, elle passe à 3 et
-le contenu déjà publié est ignoré au profit de ce fichier. Le panneau le
-signale et propose de republier.
+les clés restructurées sont reprises de ce fichier. Le panneau le signale et
+propose de republier — voir « Ce qu'une montée de version emporte » ci-dessous.
 
 ### Routing
 

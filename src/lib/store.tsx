@@ -48,12 +48,18 @@ export interface ContentStore {
   adminEmail: string | null;
   /** Local edits that differ from what is published — or nothing published yet. */
   dirty: boolean;
+  /** An actual local draft exists, as opposed to content merely differing. */
+  hasDraft: boolean;
   /** True until the first read of the published content has settled. */
   loadingRemote: boolean;
   /** Nothing has ever been published, so the site still serves content.ts. */
   neverPublished: boolean;
   /** Why the published content could not be read, if it could not. */
   remoteError: string | null;
+  /** The published payload predates this build's content model. */
+  staleRemote: boolean;
+  /** Which of its keys were recovered anyway. */
+  carriedKeys: string[];
   publishState: PublishState;
   publishError: string | null;
   publish: () => Promise<void>;
@@ -70,17 +76,70 @@ function clone<T>(value: T): T {
 }
 
 /**
- * True when a stored payload was written against the content model and the
- * seeded copy that this build ships.
+ * Keys whose shape has not moved since the content model was first published.
  *
- * A shallow merge is not enough to carry an old payload forward: `cases` is a
- * single key, so a draft saved before two case studies were merged would put
- * the old eight back wholesale. Rather than migrate, a payload from another
- * version is dropped — the bundled content is the source of truth, and the
- * admin drawer re-publishes it.
+ * `cases` and `skills` are deliberately absent: both were restructured, and
+ * carrying an old copy forward would put the previous articles back wholesale
+ * — which is the reason the version gate exists at all.
  */
-function isCurrent(payload: Partial<Content> | null | undefined): boolean {
-  return payload?.version === CONTENT_VERSION;
+const CARRIED_KEYS = ["profile", "socials", "likes"] as const;
+
+/** Shallow shape check — enough to stop a corrupt payload reaching the render. */
+function looksLike(value: unknown, model: unknown): boolean {
+  if (Array.isArray(model)) return Array.isArray(value);
+  if (model !== null && typeof model === "object") {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+  }
+  return typeof value === typeof model;
+}
+
+export interface Migration {
+  /** The content to render, or null when there was no usable payload. */
+  content: Content | null;
+  /** The payload came from an older CONTENT_VERSION. */
+  stale: boolean;
+  /** Which keys were recovered from a stale payload. */
+  carried: string[];
+}
+
+/**
+ * Adopts a stored payload — local draft or published row — against the content
+ * this build ships.
+ *
+ * A version bump used to discard the payload whole. That cost far more than it
+ * protected: `cases` was the only key whose model had actually moved, but the
+ * homepage text, the header logo, the links and the coups de cœur went with it
+ * — including every image URL already uploaded to Storage, which then had to
+ * be uploaded again. The data was never deleted; it was read and thrown away
+ * on every load, which looks exactly the same from the outside.
+ *
+ * So the gate is per key. A payload of the current version is taken as is; an
+ * older one keeps the keys whose shape never changed and takes the rest from
+ * this build. A key is only carried if it still looks like what it replaces,
+ * so a hand-edited or truncated payload degrades to the bundled copy instead
+ * of rendering undefined.
+ */
+export function migrate(payload: Partial<Content> | null | undefined): Migration {
+  if (!payload || typeof payload !== "object") {
+    return { content: null, stale: false, carried: [] };
+  }
+
+  // Shallow-merge so newly shipped default keys survive an older payload.
+  const base = clone(DEFAULT_CONTENT);
+
+  if (payload.version === CONTENT_VERSION) {
+    return { content: { ...base, ...payload } as Content, stale: false, carried: [] };
+  }
+
+  const carried: string[] = [];
+  for (const key of CARRIED_KEYS) {
+    const value = payload[key];
+    if (value === undefined || !looksLike(value, base[key])) continue;
+    (base as unknown as Record<string, unknown>)[key] = clone(value);
+    carried.push(key);
+  }
+
+  return { content: base, stale: true, carried };
 }
 
 function readLocal(): Content | null {
@@ -89,10 +148,7 @@ function readLocal(): Content | null {
     for (const key of LEGACY_STORAGE_KEYS) window.localStorage.removeItem(key);
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    const saved = JSON.parse(raw) as Partial<Content>;
-    if (!isCurrent(saved)) return null;
-    // Shallow-merge so newly shipped default keys survive an old saved payload.
-    return { ...clone(DEFAULT_CONTENT), ...saved };
+    return migrate(JSON.parse(raw) as Partial<Content>).content;
   } catch {
     return null;
   }
@@ -135,6 +191,8 @@ export function ContentProvider({ children }: { children: ReactNode }) {
   // lets the very first publish be enabled.
   const [remoteRead, setRemoteRead] = useState(!isRemoteEnabled);
   const [remoteError, setRemoteError] = useState<string | null>(null);
+  const [staleRemote, setStaleRemote] = useState(false);
+  const [carriedKeys, setCarriedKeys] = useState<string[]>([]);
   const [adminEmail, setAdminEmail] = useState<string | null>(null);
   const [publishState, setPublishState] = useState<PublishState>("idle");
   const [publishError, setPublishError] = useState<string | null>(null);
@@ -151,10 +209,14 @@ export function ContentProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
         setPublished(remote);
         setRemoteRead(true);
-        // A published payload from an older content version is kept as the
-        // comparison baseline — so the drawer shows "à publier" — but it is
-        // not adopted: this build's own content wins until it is republished.
-        if (remote && isCurrent(remote) && !initialDraft) setContent(clone(remote));
+
+        const migrated = migrate(remote);
+        setStaleRemote(migrated.stale);
+        setCarriedKeys(migrated.carried);
+        // The raw row stays the comparison baseline, so a payload that had to
+        // be migrated reads as "à publier" — republishing is what stops it
+        // being migrated again on every load.
+        if (migrated.content && !initialDraft) setContent(migrated.content);
       } catch (error) {
         if (cancelled) return;
         // Leave remoteRead false: publishing stays disabled until we have
@@ -231,9 +293,10 @@ export function ContentProvider({ children }: { children: ReactNode }) {
 
   const discardDraft = useCallback(() => {
     clearDraft();
-    // Same rule as on load: a published payload from another version is not
-    // something we can go back to.
-    setContent(isCurrent(published) ? clone(published as Content) : clone(DEFAULT_CONTENT));
+    // Same rule as on load: what is online is migrated, not discarded, so
+    // dropping a draft returns to the published homepage rather than to the
+    // bundled placeholder.
+    setContent(migrate(published).content ?? clone(DEFAULT_CONTENT));
   }, [clearDraft, published]);
 
   const exportJSON = useCallback(() => {
@@ -254,6 +317,9 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     try {
       await publishContent(content);
       setPublished(clone(content));
+      // What is online now matches this build's model, so nothing is carried.
+      setStaleRemote(false);
+      setCarriedKeys([]);
       // Ce qui vient d'être publié n'est plus un brouillon : garder la clé
       // ferait gagner une copie locale sur la version en ligne au rechargement
       // suivant, y compris après une modification faite depuis un autre poste.
@@ -289,9 +355,12 @@ export function ContentProvider({ children }: { children: ReactNode }) {
       remoteEnabled: isRemoteEnabled,
       adminEmail,
       dirty,
+      hasDraft,
       loadingRemote: !remoteRead,
       neverPublished: remoteRead && published === null,
       remoteError,
+      staleRemote,
+      carriedKeys,
       publishState,
       publishError,
       publish,
@@ -308,8 +377,11 @@ export function ContentProvider({ children }: { children: ReactNode }) {
       exportJSON,
       adminEmail,
       dirty,
+      hasDraft,
       remoteRead,
       remoteError,
+      staleRemote,
+      carriedKeys,
       published,
       publishState,
       publishError,

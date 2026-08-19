@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContentStore, type ContentStore } from "@/lib/store";
-import { uploadFile } from "@/lib/supabase";
+import { listMedia, removeMedia, uploadFile, type MediaObject } from "@/lib/supabase";
 import type { SectionId } from "@/lib/router";
 import { Button } from "@/components/ui/Button";
 import { IconButton } from "@/components/ui/IconButton";
@@ -1203,11 +1203,30 @@ function CoupsDeCoeurPanel({ store, activeId }: { store: ContentStore; activeId:
 /* ---------------------------------------------------------------- migration */
 
 /** Every dotted path in the content that holds an image URL. */
+/** "profile, socials et likes" — an Oxford-comma-free French enumeration. */
+function frenchList(keys: string[]): string {
+  const labels: Record<string, string> = {
+    profile: "la page d’accueil et le pied de page",
+    socials: "les liens",
+    likes: "les coups de cœur",
+  };
+  const parts = keys.map((key) => labels[key] ?? key);
+  if (parts.length <= 1) return parts.join("");
+  return `${parts.slice(0, -1).join(", ")} et ${parts[parts.length - 1]}`;
+}
+
 function imagePaths(content: ContentStore["content"]): { path: string; url: string }[] {
   const found: { path: string; url: string }[] = [];
 
   if (content.profile.heroImage) {
     found.push({ path: "profile.heroImage", url: content.profile.heroImage });
+  }
+  // The header logo is uploaded exactly like the hero image and was missing
+  // here, so the hosting migration skipped it — and the audit below would have
+  // called it an orphan. The CV is not in this list on purpose: it lives at a
+  // fixed path under public/, which is already stable across builds.
+  if (content.profile.logo) {
+    found.push({ path: "profile.logo", url: content.profile.logo });
   }
   content.cases.forEach((study, i) => {
     if (study.thumb) found.push({ path: `cases.${i}.thumb`, url: study.thumb });
@@ -1231,6 +1250,190 @@ function imagePaths(content: ContentStore["content"]): { path: string; url: stri
  * and the resulting Storage URL is stable across rebuilds — which the hashed
  * path is not, and that is precisely why the migration is needed at all.
  */
+/** Human-readable byte size, one decimal place past a megabyte. */
+function humanSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} o`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} ko`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+}
+
+/**
+ * Inventory of the Storage bucket, against what the content actually points at.
+ *
+ * Re-uploading the same file does not replace it: `uploadFile` prefixes a
+ * timestamp precisely so two files called `logo.png` cannot clobber each other.
+ * That is the right call for a live site — an upload never breaks a URL already
+ * in use — but it means every re-upload leaves the previous object behind, and
+ * nothing in the UI ever showed that.
+ *
+ * Unreferenced is compared against the draft *and* the published row: a file
+ * the online version still uses is not an orphan just because the local draft
+ * dropped it, and deleting it would break the live site for everyone else.
+ */
+function MediaAudit({ store }: { store: ContentStore }) {
+  const { content, adminEmail } = store;
+  const [items, setItems] = useState<MediaObject[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+
+  const load = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      setItems(await listMedia());
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  const referenced = useMemo(() => {
+    const urls = new Set<string>();
+    for (const { url } of imagePaths(content)) urls.add(url);
+    if (content.socials.cv) urls.add(content.socials.cv);
+    return urls;
+  }, [content]);
+
+  if (!adminEmail) {
+    return (
+      <p className="text-[12px] leading-snug text-fg-faint">
+        Connectez-vous pour inspecter le bucket.
+      </p>
+    );
+  }
+
+  if (items === null) {
+    return (
+      <div className="flex flex-col gap-2">
+        <p className="text-[12px] leading-snug text-fg-faint">
+          Chaque téléversement crée un nouvel objet — réimporter la même image ne
+          remplace pas l’ancienne, elle s’ajoute.
+        </p>
+        <Button size="sm" variant="ghost" disabled={busy} onClick={() => void load()}>
+          <RotateCcw size={14} strokeWidth={1.75} aria-hidden="true" />
+          {busy ? "lecture…" : "inventorier le bucket"}
+        </Button>
+        {error && <p className="text-[11px] leading-snug text-fg-muted">Échec : {error}</p>}
+      </div>
+    );
+  }
+
+  const orphans = items.filter((item) => !referenced.has(item.url));
+  const orphanBytes = orphans.reduce((sum, item) => sum + item.size, 0);
+  const total = items.reduce((sum, item) => sum + item.size, 0);
+
+  // Same original filename uploaded more than once — the duplicates, named.
+  const byName = new Map<string, MediaObject[]>();
+  for (const item of items) {
+    byName.set(item.original, [...(byName.get(item.original) ?? []), item]);
+  }
+  const duplicated = [...byName.entries()]
+    .filter(([, group]) => group.length > 1)
+    .sort((a, b) => b[1].length - a[1].length);
+
+  const purge = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await removeMedia(orphans.map((item) => item.name));
+      setItems(await listMedia());
+      setConfirming(false);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <dl className="grid grid-cols-2 gap-x-3 gap-y-1 font-mono text-[11px] text-fg-muted">
+        <dt>objets</dt>
+        <dd className="text-right text-fg">{items.length}</dd>
+        <dt>poids total</dt>
+        <dd className="text-right text-fg">{humanSize(total)}</dd>
+        <dt>référencés</dt>
+        <dd className="text-right text-fg">{items.length - orphans.length}</dd>
+        <dt>non référencés</dt>
+        <dd className="text-right text-fg">
+          {orphans.length} · {humanSize(orphanBytes)}
+        </dd>
+      </dl>
+
+      {duplicated.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <p className="text-[11px] leading-snug text-fg-muted">
+            {duplicated.length} fichier(s) téléversés plusieurs fois :
+          </p>
+          <ul className="flex flex-col gap-0.5 font-mono text-[11px] text-fg-faint">
+            {duplicated.slice(0, 8).map(([name, group]) => (
+              <li key={name} className="flex justify-between gap-2">
+                <span className="min-w-0 truncate">{name}</span>
+                <span className="shrink-0">×{group.length}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {orphans.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <ul className="flex flex-wrap gap-1">
+            {orphans.slice(0, 24).map((item) => (
+              <li key={item.name}>
+                <img
+                  src={item.url}
+                  alt={item.original}
+                  title={`${item.original} · ${humanSize(item.size)}`}
+                  loading="lazy"
+                  className="size-10 rounded border border-line object-cover"
+                />
+              </li>
+            ))}
+          </ul>
+          {confirming ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] text-fg-muted">
+                Supprimer {orphans.length} objet(s) — définitif.
+              </span>
+              <Button size="sm" variant="ghost" disabled={busy} onClick={() => void purge()}>
+                {busy ? "suppression…" : "confirmer"}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>
+                annuler
+              </Button>
+            </div>
+          ) : (
+            <Button size="sm" variant="ghost" onClick={() => setConfirming(true)}>
+              <Trash2 size={14} strokeWidth={1.75} aria-hidden="true" />
+              supprimer les {orphans.length} non référencés
+            </Button>
+          )}
+          <p className="text-[11px] leading-snug text-fg-faint">
+            Publiez d’abord si votre brouillon touche aux images : la comparaison
+            se fait sur ce que vous voyez ici.
+          </p>
+        </div>
+      )}
+
+      {orphans.length === 0 && (
+        <p className="text-[12px] leading-snug text-fg-faint">
+          Aucun objet inutilisé. Le bucket est propre.
+        </p>
+      )}
+
+      {error && <p className="text-[11px] leading-snug text-fg-muted">Échec : {error}</p>}
+
+      <Button size="sm" variant="ghost" disabled={busy} onClick={() => void load()}>
+        <RotateCcw size={14} strokeWidth={1.75} aria-hidden="true" />
+        {busy ? "lecture…" : "recharger l’inventaire"}
+      </Button>
+    </div>
+  );
+}
+
 function MigrateImages({ store }: { store: ContentStore }) {
   const { content, setField, adminEmail } = store;
   const [running, setRunning] = useState(false);
@@ -1372,11 +1575,14 @@ function SignInPanel({ store }: { store: ContentStore }) {
 function PublishControls({ store }: { store: ContentStore }) {
   const {
     dirty,
+    hasDraft,
     loadingRemote,
     neverPublished,
     publishState,
     publishError,
     remoteError,
+    staleRemote,
+    carriedKeys,
     publish,
     discardDraft,
     signOut,
@@ -1385,6 +1591,24 @@ function PublishControls({ store }: { store: ContentStore }) {
 
   return (
     <div className="flex w-full flex-col gap-2">
+      {staleRemote && (
+        <p className="rounded-md border border-line bg-bg-subtle p-2 text-[11px] leading-snug text-fg-muted">
+          {carriedKeys.length > 0 ? (
+            <>
+              La version en ligne a été publiée avec un modèle plus ancien.{" "}
+              <strong className="font-medium text-fg">{frenchList(carriedKeys)}</strong> en
+              {carriedKeys.length > 1 ? " ont" : " a"} été repris tels quels — vos textes et
+              vos images restent en place. Les cas d’études et les compétences viennent de
+              cette version du site. Publiez pour aligner les deux.
+            </>
+          ) : (
+            <>
+              La version en ligne a été publiée avec un modèle plus ancien et n’a rien pu en
+              conserver. Publiez pour la remplacer.
+            </>
+          )}
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <Button
           size="sm"
@@ -1396,7 +1620,10 @@ function PublishControls({ store }: { store: ContentStore }) {
           {publishState === "publishing" ? "publication…" : "publier"}
         </Button>
 
-        {dirty && !neverPublished && (
+        {/* Gated on a real draft, not on `dirty`: migrated content differs from
+            the published row without anyone having edited anything, and the
+            button would then offer to cancel nothing. */}
+        {hasDraft && !neverPublished && (
           <Button size="sm" variant="ghost" onClick={discardDraft}>
             annuler le brouillon
           </Button>
@@ -1422,8 +1649,10 @@ function PublishControls({ store }: { store: ContentStore }) {
                 ? "Lecture de la version en ligne…"
                 : neverPublished
                   ? "Rien n’a encore été publié. Le site sert le contenu embarqué."
-                  : dirty
-                    ? "Brouillon local non publié."
+                  : staleRemote
+                    ? "Contenu repris de la version en ligne — à republier."
+                    : dirty
+                      ? "Brouillon local non publié."
                     : `En ligne · ${adminEmail}`}
       </p>
     </div>
@@ -1491,9 +1720,14 @@ export function AdminDrawer({
         )}
 
         {store.remoteEnabled && (
-          <Group title="Hébergement des images" open={false}>
-            <MigrateImages store={store} />
-          </Group>
+          <>
+            <Group title="Hébergement des images" open={false}>
+              <MigrateImages store={store} />
+            </Group>
+            <Group title="Inventaire des médias" open={false}>
+              <MediaAudit store={store} />
+            </Group>
+          </>
         )}
       </div>
 
