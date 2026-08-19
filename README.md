@@ -114,6 +114,33 @@ servies par Vite avec un hash dans le nom, qui change à chaque build : une URL
 de ce type stockée en base casserait au déploiement suivant. Le groupe
 « Hébergement des images » du panneau les déplace vers Supabase en un clic.
 
+### Cas d’études
+
+Chaque article suit la même arborescence, et c’est une propriété du type plutôt
+qu’une discipline de rédaction :
+
+```
+en-tête     titre · année · résumé · fiche (rôle, contexte, période, livrables)
+récit       le contexte → le problème → l’approche → le résultat
+chiffres    optionnel, uniquement s’il y a une mesure réelle
+galerie     images légendées, zoomables, ratio propre à chacune
+liens       optionnels
+```
+
+Le modèle précédent était un `Block[]` avec des titres libres. Chaque article y
+inventait sa forme, et l’a fait : six à seize blocs, et six jeux de titres
+différents sur six cas — « Sous le capot », « Le parti pris », « Au C2RMF »…
+Aucun recoupement. Des champs nommés rendent la dérive impossible : on ne peut
+plus publier un cas sans énoncer son problème, ni en changer l’ordre.
+
+Ce qui a été conservé de la version en blocs : le résumé, la fiche, le zoom
+plein écran sur les images, et le `ratio` déclaré par image — sans lui, une
+planche de maquettes est recadrée en 4/3 et ses écrans deviennent illisibles.
+
+`CONTENT_VERSION` protège le contrat : la forme ayant changé, elle passe à 3 et
+le contenu déjà publié est ignoré au profit de ce fichier. Le panneau le
+signale et propose de republier.
+
 ### Routing
 
 Vraies URLs — `/`, `/competences`, `/cas-etudes`, `/coups-de-coeur` — avec

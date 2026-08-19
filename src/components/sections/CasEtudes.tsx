@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ArrowUpRight, Maximize2, X } from "lucide-react";
-import type { Block, CaseStudy, Content } from "@/lib/content";
+import type { CaseStudy, Content } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import { IconButton } from "@/components/ui/IconButton";
 import { RichText } from "@/components/ui/RichText";
@@ -78,143 +78,128 @@ function ImageZoom({ src, caption, onClose }: { src: string | null; caption?: st
 
 /* ----------------------------------------------------------------- article */
 
-function ArticleBlock({
-  block,
-  caseIndex,
-  blockIndex,
+const PROSE = "max-w-prose text-[16px] leading-relaxed text-fg-muted sm:text-[15px]";
+
+/** A paragraph: editable in admin, link-parsed for readers. */
+function Prose({
+  value,
+  path,
   admin,
   setField,
-  onZoom,
 }: {
-  block: Block;
-  caseIndex: number;
-  blockIndex: number;
+  value: string;
+  path: string;
   admin: boolean;
   setField: (path: string, value: unknown) => void;
-  onZoom: (image: { src: string; caption?: string }) => void;
 }) {
-  const path = `cases.${caseIndex}.blocks.${blockIndex}`;
-
-  if (block.type === "heading") {
-    // Extra room above, none below: a heading belongs to what follows it.
-    return (
-      <Editable
-        as="h3"
-        admin={admin}
-        value={block.value}
-        onCommit={(value) => setField(`${path}.value`, value)}
-        className="mt-4 text-xl tracking-[-0.03em] first:mt-0 sm:text-[22px]"
-      />
-    );
-  }
-
-  if (block.type === "image") {
-    return (
-      <figure className="flex flex-col gap-3">
-        {/* A fixed ratio box reserves the exact space before decode — no
-            layout shift. Most assets are 4:3; anything else declares its own
-            ratio rather than being cropped into the house format. */}
-        <button
-          type="button"
-          onClick={() => onZoom({ src: block.value, caption: block.caption })}
-          aria-label={
-            block.caption ? `Agrandir : ${block.caption}` : "Agrandir l’image"
-          }
-          className="
-            group relative block w-full cursor-zoom-in overflow-hidden rounded-lg
-            border border-line bg-bg-subtle
-            transition-colors duration-150 ease-out hover:border-line-strong
-          "
-          style={{ aspectRatio: block.ratio ?? "4 / 3" }}
-        >
-          <img
-            src={block.value}
-            alt={block.caption ?? ""}
-            loading="lazy"
-            decoding="async"
-            className="size-full object-cover"
-          />
-          <span
-            aria-hidden="true"
-            className="
-              pointer-events-none absolute right-3 top-3 flex size-8 items-center
-              justify-center rounded-md border border-line bg-surface/90 text-fg-subtle
-              opacity-0 backdrop-blur-sm transition-opacity duration-150 ease-out
-              group-hover:opacity-100 group-focus-visible:opacity-100
-            "
-          >
-            <Maximize2 size={14} strokeWidth={1.75} />
-          </span>
-        </button>
-        {(block.caption || admin) && (
-          <Editable
-            as="figcaption"
-            admin={admin}
-            value={block.caption ?? ""}
-            onCommit={(value) => setField(`${path}.caption`, value)}
-            className="text-[14px] text-fg-subtle sm:text-[13px]"
-          />
-        )}
-      </figure>
-    );
-  }
-
-  if (block.type === "list") {
-    return (
-      <div className="flex flex-col gap-3">
-        {block.intro && <p className="text-[15px] text-fg-muted">{block.intro}</p>}
-        <ul className="flex flex-col gap-2">
-          {block.items.map((item, index) => (
-            <li key={index} className="flex gap-3 text-[15px] leading-relaxed text-fg-muted">
-              <span aria-hidden="true" className="mt-2.5 size-1 shrink-0 rounded-full bg-fg-subtle" />
-              <span className="min-w-0">{item}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
-  }
-
-  if (block.type === "link") {
-    return (
-      <a
-        href={block.href}
-        target={block.href.startsWith("http") ? "_blank" : undefined}
-        rel={block.href.startsWith("http") ? "noopener noreferrer" : undefined}
-        className="
-          group inline-flex w-fit items-center gap-1.5 rounded-md border border-line-strong
-          bg-surface px-4 py-2.5 text-sm font-medium
-          transition-[background-color,border-color] duration-150 ease-out
-          hover:border-gray-400 hover:bg-bg-subtle
-        "
-      >
-        {block.label}
-        <ArrowUpRight
-          size={15}
-          strokeWidth={1.75}
-          aria-hidden="true"
-          className="transition-transform duration-150 ease-out group-hover:translate-x-px group-hover:-translate-y-px"
-        />
-      </a>
-    );
-  }
-
-  const proseClass =
-    "max-w-prose text-[16px] leading-relaxed text-fg-muted sm:text-[15px]";
-
-  // In admin the raw string is edited, brackets and all; readers get the
-  // parsed links. Same field, two renderings.
   return admin ? (
     <Editable
       as="p"
       multiline
       admin
-      value={block.value}
-      onCommit={(value) => setField(`${path}.value`, value)}
-      className={proseClass}
+      value={value}
+      onCommit={(next) => setField(path, next)}
+      className={PROSE}
     />
   ) : (
-    <RichText value={block.value} className={proseClass} />
+    <RichText value={value} className={PROSE} />
+  );
+}
+
+/**
+ * One narrative section. Every case renders the same four, in the same order.
+ * The titles are fixed rather than authored — that is the whole point of
+ * moving off free headings, which had produced six different sets across six
+ * articles.
+ */
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-3 border-t border-line pt-8">
+      <h3 className="overline-sans">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+/** Measured outcomes, when the case has any. */
+function Figures({ figures }: { figures: NonNullable<CaseStudy["figures"]> }) {
+  return (
+    <dl className="mt-2 grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-2">
+      {figures.map((figure) => (
+        <div key={figure.label} className="flex flex-col gap-1 bg-surface p-5">
+          <dt className="sr-only">{figure.label}</dt>
+          <dd className="flex flex-col gap-1">
+            <span className="text-3xl tracking-[-0.04em] text-fg">{figure.value}</span>
+            <span className="text-[13px] leading-snug text-fg-muted">{figure.label}</span>
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function Gallery({
+  images,
+  caseIndex,
+  admin,
+  setField,
+  onZoom,
+}: {
+  images: CaseStudy["images"];
+  caseIndex: number;
+  admin: boolean;
+  setField: (path: string, value: unknown) => void;
+  onZoom: (image: { src: string; caption?: string }) => void;
+}) {
+  if (images.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-7 border-t border-line pt-8">
+      {images.map((image, i) => (
+        <figure key={i} className="flex flex-col gap-3">
+          {/* A fixed ratio box reserves the exact space before decode — no
+              layout shift. Most assets are 4:3; anything else declares its own
+              ratio rather than being cropped into the house format. */}
+          <button
+            type="button"
+            onClick={() => onZoom({ src: image.value, caption: image.caption })}
+            aria-label={image.caption ? `Agrandir : ${image.caption}` : "Agrandir l’image"}
+            className="
+              group relative block w-full cursor-zoom-in overflow-hidden rounded-lg
+              border border-line bg-bg-subtle
+              transition-colors duration-150 ease-out hover:border-line-strong
+            "
+            style={{ aspectRatio: image.ratio ?? "4 / 3" }}
+          >
+            <img
+              src={image.value}
+              alt={image.caption}
+              loading="lazy"
+              decoding="async"
+              className="size-full object-cover"
+            />
+            <span
+              aria-hidden="true"
+              className="
+                pointer-events-none absolute right-3 top-3 flex size-8 items-center
+                justify-center rounded-md border border-line bg-surface/90 text-fg-subtle
+                opacity-0 backdrop-blur-sm transition-opacity duration-150 ease-out
+                group-hover:opacity-100 group-focus-visible:opacity-100
+              "
+            >
+              <Maximize2 size={14} strokeWidth={1.75} />
+            </span>
+          </button>
+          <Editable
+            as="figcaption"
+            admin={admin}
+            value={image.caption}
+            onCommit={(value) => setField(`cases.${caseIndex}.images.${i}.caption`, value)}
+            className="text-[14px] text-fg-subtle sm:text-[13px]"
+          />
+        </figure>
+      ))}
+    </div>
   );
 }
 
@@ -424,8 +409,11 @@ export function CasEtudes({ content, admin, setField, activeId, onSelect }: CasE
         </IconButton>
       </div>
 
+      {/* Same skeleton for every case: en-tête, fiche, contexte, problème,
+          approche, résultat, chiffres, galerie, liens. Only the last three are
+          conditional, and only because they are genuinely optional. */}
       <article className="gutter-x mx-auto flex w-full max-w-3xl flex-col gap-8">
-        <header className="flex flex-col gap-5 border-b border-line pb-8">
+        <header className="flex flex-col gap-5">
           <div className="flex items-center gap-3">
             <time className="font-mono text-[13px] tracking-tight text-fg-faint sm:text-[12px]">
               {current.date}
@@ -441,46 +429,122 @@ export function CasEtudes({ content, admin, setField, activeId, onSelect }: CasE
             className="text-3xl tracking-[-0.035em] sm:text-4xl"
           />
 
-          {/* Optional: a payload published before these fields existed simply
-              renders the header it always had. */}
-          {(current.summary || admin) && (
-            <Editable
-              as="p"
-              multiline
-              admin={admin}
-              value={current.summary ?? ""}
-              onCommit={(value) => setField(`cases.${index}.summary`, value)}
-              className="max-w-prose text-balance text-[18px] leading-relaxed text-fg-muted sm:text-[17px]"
-            />
-          )}
+          <Editable
+            as="p"
+            multiline
+            admin={admin}
+            value={current.summary}
+            onCommit={(value) => setField(`cases.${index}.summary`, value)}
+            className="max-w-prose text-balance text-[18px] leading-relaxed text-fg-muted sm:text-[17px]"
+          />
 
-          {current.meta && current.meta.length > 0 && (
-            <dl className="mt-1 flex flex-col gap-2 border-t border-line pt-5">
-              {current.meta.map((entry, metaIndex) => (
-                <div key={metaIndex} className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
-                  <dt className="overline sm:w-24 sm:shrink-0 sm:pt-[3px]">{entry.label}</dt>
-                  <dd className="min-w-0 text-[14px] leading-snug text-fg-muted sm:text-[13px]">
-                    {entry.value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          )}
+          <dl className="mt-1 flex flex-col gap-2 border-t border-line pt-5">
+            {[
+              ["rôle", current.role as React.ReactNode],
+              ["contexte", current.client],
+              ["période", current.date],
+              [
+                "livrables",
+                <span className="flex flex-col gap-0.5">
+                  {current.deliverables.map((item) => (
+                    <span key={item}>{item}</span>
+                  ))}
+                </span>,
+              ],
+            ].map(([label, value]) => (
+              <div key={String(label)} className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
+                <dt className="overline sm:w-24 sm:shrink-0 sm:pt-[3px]">{label}</dt>
+                <dd className="min-w-0 text-[14px] leading-snug text-fg-muted sm:text-[13px]">
+                  {value}
+                </dd>
+              </div>
+            ))}
+          </dl>
         </header>
 
-        <div className="flex flex-col gap-7">
-          {current.blocks.map((block, blockIndex) => (
-            <ArticleBlock
-              key={blockIndex}
-              block={block}
-              caseIndex={index}
-              blockIndex={blockIndex}
-              admin={admin}
-              setField={setField}
-              onZoom={setZoom}
-            />
-          ))}
-        </div>
+        <Section title="le contexte">
+          <Prose
+            value={current.context}
+            path={`cases.${index}.context`}
+            admin={admin}
+            setField={setField}
+          />
+        </Section>
+
+        <Section title="le problème">
+          <Prose
+            value={current.problem}
+            path={`cases.${index}.problem`}
+            admin={admin}
+            setField={setField}
+          />
+        </Section>
+
+        <Section title="l’approche">
+          <ol className="flex max-w-prose flex-col gap-3">
+            {current.approach.map((step, i) => (
+              <li
+                key={i}
+                className="flex gap-3 text-[16px] leading-relaxed text-fg-muted sm:text-[15px]"
+              >
+                <span
+                  aria-hidden="true"
+                  className="mt-0.5 w-5 shrink-0 font-mono text-[13px] text-fg-faint"
+                >
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span className="min-w-0">{step}</span>
+              </li>
+            ))}
+          </ol>
+        </Section>
+
+        <Section title="le résultat">
+          <Prose
+            value={current.result}
+            path={`cases.${index}.result`}
+            admin={admin}
+            setField={setField}
+          />
+          {current.figures && current.figures.length > 0 && (
+            <Figures figures={current.figures} />
+          )}
+        </Section>
+
+        <Gallery
+          images={current.images}
+          caseIndex={index}
+          admin={admin}
+          setField={setField}
+          onZoom={setZoom}
+        />
+
+        {current.links && current.links.length > 0 && (
+          <div className="flex flex-wrap gap-2 border-t border-line pt-8">
+            {current.links.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                target={link.href.startsWith("http") ? "_blank" : undefined}
+                rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                className="
+                  group inline-flex h-11 items-center gap-1.5 rounded-md border
+                  border-line-strong bg-surface px-4 text-sm font-medium
+                  transition-[background-color,border-color] duration-150 ease-out
+                  hover:border-gray-400 hover:bg-bg-subtle sm:h-10
+                "
+              >
+                {link.label}
+                <ArrowUpRight
+                  size={15}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                  className="transition-transform duration-150 ease-out group-hover:translate-x-px group-hover:-translate-y-px"
+                />
+              </a>
+            ))}
+          </div>
+        )}
       </article>
 
       <ImageZoom src={zoom?.src ?? null} caption={zoom?.caption} onClose={closeZoom} />

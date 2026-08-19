@@ -4,20 +4,18 @@ import {
   ArrowUp,
   Download,
   FileText,
-  Heading,
   ImagePlus,
   Plus,
   CloudUpload,
   LogOut,
   RotateCcw,
   Trash2,
-  Type,
   Upload,
   X,
 } from "lucide-react";
 import { useContentStore, type ContentStore } from "@/lib/store";
 import { uploadFile } from "@/lib/supabase";
-import type { Block, CaseStudy } from "@/lib/content";
+import type { CaseStudy } from "@/lib/content";
 import type { SectionId } from "@/lib/router";
 import { Button } from "@/components/ui/Button";
 import { IconButton } from "@/components/ui/IconButton";
@@ -452,128 +450,39 @@ function CompetencesPanel({ store }: { store: ContentStore }) {
 }
 
 /** Editor for one article block. */
-function BlockEditor({
-  block,
-  path,
-  setField,
-  onMove,
-  onRemove,
-  canMoveUp,
-  canMoveDown,
+/** Edits a list of short strings, one per line. */
+function ListField({
+  label,
+  items,
+  onCommit,
+  hint,
 }: {
-  block: Block;
-  path: string;
-  setField: (path: string, value: unknown) => void;
-  onMove: (delta: number) => void;
-  onRemove: () => void;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
+  label: string;
+  items: string[];
+  onCommit: (items: string[]) => void;
+  hint?: string;
 }) {
   return (
-    <Card>
-      <div className="flex items-center justify-between gap-1">
-        <span className="overline">{block.type}</span>
-        <span className="flex items-center">
-          <IconButton
-            label="Monter le bloc"
-            disabled={!canMoveUp}
-            className="size-8 border-transparent bg-transparent disabled:opacity-30 sm:size-8"
-            onClick={() => onMove(-1)}
-          >
-            <ArrowUp size={14} strokeWidth={1.75} aria-hidden="true" />
-          </IconButton>
-          <IconButton
-            label="Descendre le bloc"
-            disabled={!canMoveDown}
-            className="size-8 border-transparent bg-transparent disabled:opacity-30 sm:size-8"
-            onClick={() => onMove(1)}
-          >
-            <ArrowDown size={14} strokeWidth={1.75} aria-hidden="true" />
-          </IconButton>
-          <DeleteButton what="ce bloc" onConfirm={onRemove} />
-        </span>
-      </div>
-
-      {block.type === "heading" && (
-        <Field
-          label="intertitre"
-          value={block.value}
-          onCommit={(value) => setField(`${path}.value`, value)}
-        />
-      )}
-
-      {block.type === "text" && (
-        <Field
-          label="texte"
-          multiline
-          rows={5}
-          value={block.value}
-          onCommit={(value) => setField(`${path}.value`, value)}
-          hint="Les liens s’écrivent [texte affiché](https://url)."
-        />
-      )}
-
-      {block.type === "image" && (
-        <>
-          <FileField
-            label="image"
-            value={block.value}
-            onCommit={(value) => setField(`${path}.value`, value)}
-          />
-          <Field
-            label="légende"
-            value={block.caption ?? ""}
-            onCommit={(value) => setField(`${path}.caption`, value)}
-          />
-          <Field
-            label="proportions"
-            value={block.ratio ?? ""}
-            onCommit={(value) => setField(`${path}.ratio`, value.trim() || undefined)}
-            hint="Laisser vide pour le 4/3 du site. Sinon « largeur / hauteur », par ex. 16 / 9."
-          />
-        </>
-      )}
-
-      {block.type === "list" && (
-        <>
-          <Field
-            label="introduction"
-            value={block.intro ?? ""}
-            onCommit={(value) => setField(`${path}.intro`, value)}
-          />
-          <Field
-            label="éléments (un par ligne)"
-            multiline
-            rows={5}
-            value={block.items.join("\n")}
-            onCommit={(value) =>
-              setField(
-                `${path}.items`,
-                value.split("\n").map((item) => item.trim()).filter(Boolean),
-              )
-            }
-          />
-        </>
-      )}
-
-      {block.type === "link" && (
-        <>
-          <Field
-            label="libellé"
-            value={block.label}
-            onCommit={(value) => setField(`${path}.label`, value)}
-          />
-          <Field
-            label="url"
-            value={block.href}
-            onCommit={(value) => setField(`${path}.href`, value)}
-          />
-        </>
-      )}
-    </Card>
+    <Field
+      label={label}
+      multiline
+      rows={Math.min(Math.max(items.length + 1, 3), 9)}
+      value={items.join("\n")}
+      hint={hint}
+      onCommit={(value) =>
+        onCommit(value.split("\n").map((item) => item.trim()).filter(Boolean))
+      }
+    />
   );
 }
 
+/**
+ * Editor for one case study.
+ *
+ * Mirrors the article one-for-one: the same sections, in the same order, with
+ * no way to add or reorder them. That constraint is the feature — free blocks
+ * had let six articles drift into six different shapes.
+ */
 function CasEtudesPanel({ store, activeId }: { store: ContentStore; activeId: string }) {
   const { content, setField, removeItem, addItem } = store;
   const index = Math.max(0, content.cases.findIndex((study) => study.id === activeId));
@@ -581,8 +490,9 @@ function CasEtudesPanel({ store, activeId }: { store: ContentStore; activeId: st
 
   if (!study) return null;
 
-  const blocks = study.blocks;
-  const setBlocks = (next: Block[]) => setField(`cases.${index}.blocks`, next);
+  const at = (field: string) => `cases.${index}.${field}`;
+  const links = study.links ?? [];
+  const figures = study.figures ?? [];
 
   return (
     <>
@@ -593,105 +503,212 @@ function CasEtudesPanel({ store, activeId }: { store: ContentStore; activeId: st
         </p>
       </div>
 
-      <Group title="Fiche">
+      <Group title="En-tête">
         <div className="flex items-center justify-end">
-          <DeleteButton
-            what={study.shortTitle}
-            onConfirm={() => removeItem("cases", index)}
-          />
+          <DeleteButton what={study.shortTitle} onConfirm={() => removeItem("cases", index)} />
         </div>
-        <Field
-          label="titre"
-          value={study.title}
-          onCommit={(value) => setField(`cases.${index}.title`, value)}
-        />
+        <Field label="titre" value={study.title} onCommit={(v) => setField(at("title"), v)} />
         <Field
           label="titre court"
           value={study.shortTitle}
-          onCommit={(value) => setField(`cases.${index}.shortTitle`, value)}
+          onCommit={(v) => setField(at("shortTitle"), v)}
+          hint="Affiché sous les vignettes des compétences."
         />
         <Field
-          label="date"
-          value={study.date}
-          onCommit={(value) => setField(`cases.${index}.date`, value)}
-        />
-        <Field
-          label="chapô"
+          label="résumé"
           multiline
           rows={3}
-          value={study.summary ?? ""}
-          onCommit={(value) => setField(`cases.${index}.summary`, value)}
-          hint="Une ou deux phrases sous le titre, avant l’article."
-        />
-        <Field
-          label="fiche technique"
-          multiline
-          rows={4}
-          value={(study.meta ?? []).map((entry) => `${entry.label} : ${entry.value}`).join("\n")}
-          onCommit={(value) =>
-            setField(
-              `cases.${index}.meta`,
-              value
-                .split("\n")
-                .map((line) => line.split(/\s*:\s*(.+)/s))
-                .filter((parts) => parts[0]?.trim() && parts[1]?.trim())
-                .map((parts) => ({ label: parts[0].trim(), value: parts[1].trim() })),
-            )
-          }
-          hint="Une ligne par entrée, au format « rôle : direction artistique »."
+          value={study.summary}
+          onCommit={(v) => setField(at("summary"), v)}
+          hint="Une ou deux phrases sous le titre, pour quelqu’un qui survole."
         />
         <FileField
           label="vignette"
           value={study.thumb}
-          onCommit={(value) => setField(`cases.${index}.thumb`, value)}
+          onCommit={(v) => setField(at("thumb"), v)}
         />
       </Group>
 
-      <Group title={`Contenu · ${blocks.length} blocs`}>
-        {blocks.map((block, blockIndex) => (
-          <BlockEditor
-            key={blockIndex}
-            block={block}
-            path={`cases.${index}.blocks.${blockIndex}`}
-            setField={setField}
-            canMoveUp={blockIndex > 0}
-            canMoveDown={blockIndex < blocks.length - 1}
-            onMove={(delta) => {
-              const next = blocks.slice();
-              const target = blockIndex + delta;
-              [next[blockIndex], next[target]] = [next[target], next[blockIndex]];
-              setBlocks(next);
-            }}
-            onRemove={() => setBlocks(blocks.filter((_, i) => i !== blockIndex))}
-          />
-        ))}
+      <Group title="Fiche" open={false}>
+        <Field label="rôle" value={study.role} onCommit={(v) => setField(at("role"), v)} />
+        <Field
+          label="contexte"
+          value={study.client}
+          onCommit={(v) => setField(at("client"), v)}
+          hint="Client, employeur ou cadre du projet."
+        />
+        <Field label="période" value={study.date} onCommit={(v) => setField(at("date"), v)} />
+        <ListField
+          label="livrables (un par ligne)"
+          items={study.deliverables}
+          onCommit={(items) => setField(at("deliverables"), items)}
+        />
+      </Group>
 
-        <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setBlocks([...blocks, { type: "heading", value: "" }])}
-          >
-            <Heading size={14} strokeWidth={1.75} aria-hidden="true" />
-            intertitre
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setBlocks([...blocks, { type: "text", value: "" }])}
-          >
-            <Type size={14} strokeWidth={1.75} aria-hidden="true" />
-            texte
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setBlocks([...blocks, { type: "image", value: "", caption: "" }])}
-          >
-            <ImagePlus size={14} strokeWidth={1.75} aria-hidden="true" />
-            image
-          </Button>
-        </div>
+      <Group title="Récit">
+        <Field
+          label="le contexte"
+          multiline
+          rows={5}
+          value={study.context}
+          onCommit={(v) => setField(at("context"), v)}
+          hint="La situation de départ. Les liens s’écrivent [texte](url)."
+        />
+        <Field
+          label="le problème"
+          multiline
+          rows={5}
+          value={study.problem}
+          onCommit={(v) => setField(at("problem"), v)}
+          hint="La friction réelle, pas la commande."
+        />
+        <ListField
+          label="l’approche (une action par ligne)"
+          items={study.approach}
+          onCommit={(items) => setField(at("approach"), items)}
+          hint="Numérotées automatiquement dans l’article."
+        />
+        <Field
+          label="le résultat"
+          multiline
+          rows={5}
+          value={study.result}
+          onCommit={(v) => setField(at("result"), v)}
+        />
+      </Group>
+
+      <Group title={`Chiffres clés · ${figures.length}`} open={false}>
+        <p className="text-[12px] leading-snug text-fg-faint">
+          À laisser vide si le projet n’a pas de mesure. Un chiffre inventé se
+          voit, et décrédibilise les autres.
+        </p>
+        {figures.map((figure, i) => (
+          <Card key={i}>
+            <div className="flex items-center justify-between gap-2">
+              <span className="overline">chiffre {i + 1}</span>
+              <DeleteButton
+                what="ce chiffre"
+                onConfirm={() => setField(at("figures"), figures.filter((_, j) => j !== i))}
+              />
+            </div>
+            <Field
+              label="valeur"
+              value={figure.value}
+              onCommit={(v) => setField(at(`figures.${i}.value`), v)}
+            />
+            <Field
+              label="libellé"
+              value={figure.label}
+              onCommit={(v) => setField(at(`figures.${i}.label`), v)}
+            />
+          </Card>
+        ))}
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setField(at("figures"), [...figures, { value: "", label: "" }])}
+        >
+          <Plus size={14} strokeWidth={1.75} aria-hidden="true" />
+          ajouter un chiffre
+        </Button>
+      </Group>
+
+      <Group title={`Images · ${study.images.length}`} open={false}>
+        {study.images.map((image, i) => (
+          <Card key={i}>
+            <div className="flex items-center justify-between gap-2">
+              <span className="overline">image {i + 1}</span>
+              <span className="flex items-center">
+                <IconButton
+                  label="Monter l’image"
+                  disabled={i === 0}
+                  className="size-8 border-transparent bg-transparent disabled:opacity-30 sm:size-8"
+                  onClick={() => {
+                    const next = study.images.slice();
+                    [next[i - 1], next[i]] = [next[i], next[i - 1]];
+                    setField(at("images"), next);
+                  }}
+                >
+                  <ArrowUp size={14} strokeWidth={1.75} aria-hidden="true" />
+                </IconButton>
+                <IconButton
+                  label="Descendre l’image"
+                  disabled={i === study.images.length - 1}
+                  className="size-8 border-transparent bg-transparent disabled:opacity-30 sm:size-8"
+                  onClick={() => {
+                    const next = study.images.slice();
+                    [next[i], next[i + 1]] = [next[i + 1], next[i]];
+                    setField(at("images"), next);
+                  }}
+                >
+                  <ArrowDown size={14} strokeWidth={1.75} aria-hidden="true" />
+                </IconButton>
+                <DeleteButton
+                  what="cette image"
+                  onConfirm={() =>
+                    setField(at("images"), study.images.filter((_, j) => j !== i))
+                  }
+                />
+              </span>
+            </div>
+            <FileField
+              label="fichier"
+              value={image.value}
+              onCommit={(v) => setField(at(`images.${i}.value`), v)}
+            />
+            <Field
+              label="légende"
+              value={image.caption}
+              onCommit={(v) => setField(at(`images.${i}.caption`), v)}
+            />
+            <Field
+              label="proportions"
+              value={image.ratio ?? ""}
+              onCommit={(v) => setField(at(`images.${i}.ratio`), v || undefined)}
+              hint="Vide = cadre 4/3. Sinon « 1100 / 577 » pour montrer l’image entière."
+            />
+          </Card>
+        ))}
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setField(at("images"), [...study.images, { value: "", caption: "" }])}
+        >
+          <ImagePlus size={14} strokeWidth={1.75} aria-hidden="true" />
+          ajouter une image
+        </Button>
+      </Group>
+
+      <Group title={`Liens · ${links.length}`} open={false}>
+        {links.map((link, i) => (
+          <Card key={i}>
+            <div className="flex items-center justify-between gap-2">
+              <span className="overline">lien {i + 1}</span>
+              <DeleteButton
+                what="ce lien"
+                onConfirm={() => setField(at("links"), links.filter((_, j) => j !== i))}
+              />
+            </div>
+            <Field
+              label="libellé"
+              value={link.label}
+              onCommit={(v) => setField(at(`links.${i}.label`), v)}
+            />
+            <Field
+              label="url"
+              value={link.href}
+              onCommit={(v) => setField(at(`links.${i}.href`), v)}
+            />
+          </Card>
+        ))}
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setField(at("links"), [...links, { href: "", label: "" }])}
+        >
+          <Plus size={14} strokeWidth={1.75} aria-hidden="true" />
+          ajouter un lien
+        </Button>
       </Group>
 
       <Group title="Nouveau cas" open={false}>
@@ -701,11 +718,19 @@ function CasEtudesPanel({ store, activeId }: { store: ContentStore; activeId: st
           onClick={() =>
             addItem("cases", {
               id: `cas-${Date.now()}`,
-              title: "Nouveau cas d’étude",
+              title: "Nouveau cas d’études",
               shortTitle: "Nouveau cas",
               date: String(new Date().getFullYear()),
               thumb: "",
-              blocks: [{ type: "text", value: "" }],
+              summary: "",
+              role: "",
+              client: "",
+              deliverables: [],
+              context: "",
+              problem: "",
+              approach: [],
+              result: "",
+              images: [],
             })
           }
         >
@@ -716,6 +741,7 @@ function CasEtudesPanel({ store, activeId }: { store: ContentStore; activeId: st
     </>
   );
 }
+
 
 function CoupsDeCoeurPanel({ store, activeId }: { store: ContentStore; activeId: string | null }) {
   const { content, setField, removeItem, addItem } = store;
@@ -831,10 +857,8 @@ function imagePaths(content: ContentStore["content"]): { path: string; url: stri
   }
   content.cases.forEach((study, i) => {
     if (study.thumb) found.push({ path: `cases.${i}.thumb`, url: study.thumb });
-    study.blocks.forEach((block, b) => {
-      if (block.type === "image" && block.value) {
-        found.push({ path: `cases.${i}.blocks.${b}.value`, url: block.value });
-      }
+    study.images.forEach((image, j) => {
+      if (image.value) found.push({ path: `cases.${i}.images.${j}.value`, url: image.value });
     });
   });
   content.likes.forEach((like, i) => {
