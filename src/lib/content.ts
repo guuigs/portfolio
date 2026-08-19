@@ -199,74 +199,119 @@ export const DEFAULT_CONTENT: Content = {
 
   skills: [
     {
-      id: "design",
-      title: "Design graphique",
-      description:
-        "J’ai forgé mon expérience du design graphique à travers de multiples facettes de ma vie professionnelle : veille personnelle, freelance, projets annexes. Un visuel doit être pensé avant tout par le message qu’il porte et par la personne à qui il s’adresse — la compréhension de l’autre et l’empathie sont clés.",
-      stack: [
-        "Figma",
-        "Illustrator",
-        "Photoshop",
-        "InDesign",
-        "Branding",
-        "Typographie",
-        "Direction artistique",
-        "Packaging",
-      ],
-      cases: ["elapsio", "lkl", "artsing"],
-    },
-    {
       id: "ux",
-      title: "Expérience utilisateur",
+      title: "Expérience utilisateur & conception produit",
       description:
-        "Mes études et mes expériences professionnelles m’ont montré à quel point l’étude du comportement de l’utilisateur est cruciale au succès d’un produit — et à quel point, paradoxalement, elle est peu pratiquée. Je m’efforce donc de toujours partir de l’usage : tests, interviews, études.",
+        "Mes études et mes expériences m’ont montré à quel point l’étude du comportement réel est cruciale au succès d’un produit — et à quel point, paradoxalement, elle est peu pratiquée. Je pars donc de l’usage : entretiens, questionnaires, corpus, tests en situation. Mon mémoire est allé jusqu’à contester ma propre discipline, en restant ouvert à l’hypothèse que le design n’était pas la solution.",
       stack: [
         "Recherche utilisateur",
         "Entretiens semi-directifs",
         "Questionnaires",
         "Analyse de corpus",
+        "Personas",
         "Wireframes",
-        "Prototypage",
-        "Tests utilisateurs",
+        "Prototypage Figma",
+        "Design system",
+        "Tests en situation",
         "Accessibilité",
       ],
-      cases: ["memoire", "wakey", "frenchbook"],
+      cases: ["memoire", "frenchbook", "megacarte", "wakey"],
+    },
+    {
+      id: "design",
+      title: "Design graphique & identité",
+      description:
+        "Un visuel se pense d’abord par le message qu’il porte et par la personne à qui il s’adresse. J’ai forgé cette pratique en freelance et sur des projets annexes, jusqu’à la contrainte physique : un système d’identité ne vaut que s’il survit à la sérigraphie sur sachet, à la compression d’un flux vidéo ou à l’imposition d’un livret A5.",
+      stack: [
+        "Identité visuelle",
+        "Typographie",
+        "Direction artistique",
+        "Packaging",
+        "Pré-presse CMJN",
+        "Illustrator",
+        "Photoshop",
+        "InDesign",
+        "Figma",
+        "Mise en page éditoriale",
+      ],
+      cases: ["elapsio", "lkl", "artsing"],
     },
     {
       id: "web",
-      title: "Développement web",
+      title: "Développement produit",
       description:
-        "Mes études et mes projets m’ont vite montré la nécessité de comprendre les bases du code et le fonctionnement de nos systèmes numériques. Profitant d’un trou dans mon calendrier avant mon départ en Erasmus, je me suis mis au front — et je ne me suis plus arrêté.",
+        "Je code mes propres conceptions, de la maquette au déploiement. Je le présente pour ce que c’est : une compétence de développeur produit en autonomie, très assistée par l’IA, sans revue de code par des pairs ni formation d’ingénierie formelle. C’est un atout de handoff et de QA design — je parle la langue des développeurs et je livre ce que je dessine — plutôt qu’une expérience de front-end en équipe.",
       stack: [
-        "React",
         "TypeScript",
+        "React",
+        "React Native",
+        "Next.js",
+        "Tailwind CSS",
+        "Zustand",
+        "IndexedDB",
         "Expo",
-        "Supabase",
-        "Perplexity API",
-        "Stripe",
-        "HTML",
-        "CSS",
         "p5.js",
         "Git",
-        "Cursor",
+        "Claude Code",
       ],
-      cases: ["frenchbook", "wakey", "artsing"],
+      cases: ["frenchbook", "thebookclub", "wakey", "artsing"],
+    },
+    {
+      id: "infra",
+      title: "Back-end, infrastructure & conformité",
+      description:
+        "Modéliser une base, poser les bonnes règles d’accès, et ne jamais exposer ce qui ne doit pas l’être. Sur Megacarte, le RGPD et le RGAA ont été traités comme des contraintes de conception dès le départ plutôt que comme un correctif : consentement explicite à la cession de droits, empreinte d’IP comme preuve légale au lieu de l’IP en clair, hébergement européen par principe.",
+      stack: [
+        "Supabase",
+        "PostgreSQL",
+        "Row Level Security",
+        "API REST",
+        "Mistral",
+        "Perplexity",
+        "VPS Linux",
+        "GitHub Actions",
+        "Bunny.net",
+        "RGPD",
+        "RGAA",
+      ],
+      cases: ["megacarte", "frenchbook", "thebookclub"],
+    },
+    {
+      id: "ia",
+      title: "IA & architecture agentique",
+      description:
+        "Concevoir des chaînes de travail où l’IA a un périmètre écrit, pas un rôle vague. Pour mon mémoire, six sous-agents aux permissions distinctes — un seul autorisé à écrire la prose finale, un autre chargé de contester mes propres thèses — et un journal des contributions de l’IA versé à la méthodologie. C’est une compétence d’architecture de workflow, et je la démontre par le dépôt public plutôt que par un mot-clé sur un CV.",
+      stack: [
+        "Claude Code",
+        "Sous-agents",
+        "Skills & hooks",
+        "MCP",
+        "Prompt engineering",
+        "Anthropic API",
+        "Mistral OCR",
+        "MiniMax TTS",
+        "ElevenLabs Music",
+        "Logs de contribution",
+      ],
+      cases: ["memoire", "capa", "frenchbook"],
     },
     {
       id: "project",
-      title: "Gestion de projets",
+      title: "Gestion de projet & éditorial",
       description:
-        "J’ai développé cette compétence au cours de mes trois années d’alternance, au Centre de Recherche et de Restauration des Musées de France (C2RMF) puis à l’Institut national de recherches en archéologie préventive (Inrap).",
+        "Trois ans d’alternance au C2RMF puis à l’Inrap, à faire le lien entre des départements qui ne parlent pas la même langue : scientifiques, techniques, prestataires. Dans une institution, un site souffre rarement d’un problème technique — il souffre d’un problème de production, et c’est là que se joue le travail.",
       stack: [
-        "Pilotage prestataires",
-        "Ateliers",
+        "Pilotage de prestataires",
+        "Ateliers de co-conception",
+        "Recueil de besoins",
         "Drupal",
-        "SEO",
+        "SEO institutionnel",
         "Analytics",
-        "Rédaction éditoriale",
-        "Accessibilité",
+        "Rédaction web",
+        "Obsidian",
+        "Zotero",
       ],
-      cases: ["c2rmf"],
+      cases: ["c2rmf", "megacarte", "memoire"],
     },
   ],
 
@@ -274,40 +319,41 @@ export const DEFAULT_CONTENT: Content = {
     /* ---------------------------------------------------- french book */
     {
       id: "frenchbook",
-      shortTitle: "French Book Distribution",
-      title: "French Book Distribution — accélérer le pointage des livres à réception",
+      shortTitle: "FrenchBook Scan",
+      title: "FrenchBook Scan — contrôler la réception d’un carton de livres",
       date: "2026",
       thumb: "",
       summary:
-        "Remplacer un pointage manuel, ligne à ligne, par un scan OCR du bon de livraison et une lecture des codes-barres à la caméra. L’étape gagne 35 % d’efficacité.",
-      role: "Conception produit et développement",
-      client: "French Book Distribution — distribution et logistique du livre",
+        "Une application web qui photographie le bordereau papier, l’OCRise avec deux moteurs en parallèle, fait arbitrer les cas douteux, puis fait scanner les livres un à un. Pensée pour une main, debout, en entrepôt.",
+      role: "Conception produit, UX et développement, en solo",
+      client: "FrenchBook Distribution — mission freelance, en production",
       deliverables: [
-        "Scan OCR des bons de livraison",
-        "Écran de vérification et de correction du scan",
-        "Lecture des codes-barres à la caméra",
-        "Rapprochement automatique entre les livres lus et les lignes du bon",
+        "Application web Next.js déployée",
+        "Double lecture OCR croisée et arbitrage",
+        "Scan code-barres en flux continu",
+        "Export PDF du contrôle",
       ],
       context:
-        "À l’arrivée des cartons, chaque livraison doit être « pointée » : on vérifie, livre par livre, que le contenu du carton correspond bien au bon de livraison qui l’accompagne. C’est le maillon qui conditionne toute la suite de la chaîne — tant qu’un carton n’est pas pointé, il n’entre pas en stock.",
+        "À l’export, chaque carton arrive avec son bon de commande papier — bordereau SODIS/Gallimard ou CDL Hachette. Avant l’expédition, il faut confirmer que le contenu physique correspond ligne pour ligne à ce bordereau. C’est le maillon qui conditionne la suite : tant qu’un carton n’est pas contrôlé, il ne part pas.",
       problem:
-        "Le pointage repose entièrement sur le papier et sur la main. Le bon de livraison doit impérativement se trouver dans le carton à l’ouverture, et l’opérateur compare ensuite chaque référence à l’œil, ligne après ligne. C’est lent, fatigant, et la vigilance baisse exactement là où l’erreur coûte le plus cher : une ligne mal lue se propage jusqu’au stock.",
+        "Le contrôle se fait au papier et à l’œil, référence après référence. C’est lent, et la vigilance baisse exactement là où l’erreur coûte le plus cher : un ISBN mal lu ne reste pas une faute de frappe, il devient un litige fournisseur. Le contexte n’aide pas — on tient le téléphone d’une main, on manipule les livres de l’autre, debout, dans un entrepôt.",
       approach: [
-        "Observer l’étape sur le terrain avec les équipes de réception, pour distinguer ce qui prend réellement du temps de ce qu’on croit coûteux.",
-        "Numériser le bon de livraison par OCR via Mistral, plutôt que de le ressaisir : le papier est lu une fois, puis devient une donnée exploitable.",
-        "Intercaler un écran de vérification — l’OCR propose, l’opérateur confirme ou corrige. La machine ne décide jamais seule sur un document qui engage le stock.",
-        "Lire les codes-barres des livres à la caméra, au rythme du déballage, au lieu du pointage visuel.",
-        "Rapprocher automatiquement les codes lus et les lignes du bon, et ne remonter à l’opérateur que les écarts.",
+        "Observer l’étape sur le terrain pour modéliser les erreurs réelles des bordereaux plutôt qu’un cas d’école : décalage d’un bloc de deux lignes, compléments de titre pris pour des articles, intertitres qui sortent du décompte, doublons d’ISBN.",
+        "Faire lire chaque page par deux moteurs Mistral en parallèle — endpoint documentaire et modèle vision — avec un schéma JSON strict imposé aux deux, pour rendre leurs sorties comparables champ à champ.",
+        "Trancher les divergences par la clé de contrôle de l’ISBN : l’EAN-13 se valide tout seul, donc la machine arbitre sans demander à personne de recalculer une clé de tête.",
+        "Séparer strictement ce qui bloque l’opérateur — ISBN cassé, deux ISBN valides concurrents, quantité incohérente — de ce qui reste une simple mention affichée, qui n’interrompt jamais le flux.",
+        "Scanner en flux continu avec ZXing, Safari n’implémentant pas BarcodeDetector, et poser un anti-rebond : pause de 900 ms après validation, double lecture exigée pour tout ce qui n’est pas un code Bookland.",
+        "Compenser par le design ce que l’iOS ne permet pas — ni vibration ni contrôle de la torche : la confirmation passe par un voile plein écran coloré, visible sans regarder.",
+        "Garder les clés d’API côté serveur, protéger l’accès par un cookie signé HMAC, et ne rien stocker : le carton clos, tout est effacé.",
       ],
       result:
-        "L’opérateur ne recopie plus rien : il valide un scan, puis passe les livres devant la caméra. Le contrôle ligne à ligne disparaît au profit d’une liste d’écarts, beaucoup plus courte à traiter.",
+        "L’opérateur ne recopie plus rien. Il valide un scan, arbitre les quelques cas signalés, puis passe les livres devant la caméra ; le contrôle ligne à ligne laisse place à une liste d’écarts, beaucoup plus courte à traiter. L’application est en usage réel par l’équipe de réception, et l’étape gagne 35 % d’efficacité. Le parti pris assumé : préférer bloquer à tort, rarement, plutôt que laisser passer une erreur silencieuse.",
       figures: [
-        { value: "+35 %", label: "d’efficacité sur l’étape de pointage" },
-        { value: "0", label: "ligne ressaisie à la main" },
+        { value: "+35 %", label: "d’efficacité sur l’étape de contrôle" },
+        { value: "2", label: "moteurs OCR croisés, arbitrés par la clé ISBN" },
       ],
       images: [],
     },
-
     /* ---------------------------------------------------------- mémoire */
     {
       id: "memoire",
@@ -316,13 +362,13 @@ export const DEFAULT_CONTENT: Content = {
       date: "2024 — 2026",
       thumb: imgMemoireThumb,
       summary:
-        "117 pages, huit entretiens, 70 répondants, six audioguides analysés et un prototype testé en salle. Je cherchais un problème de design ; le terrain m’a répondu autre chose.",
+        "117 pages, quatre entretiens, 70 répondants, six audioguides analysés et un prototype testé en salle. Je cherchais un problème de design ; le terrain m’a répondu autre chose.",
       role: "Recherche, terrain, prototype",
       client:
         "Master Design d’Interface Multimédia et Internet, Université Sorbonne Paris Nord — direction Benoît Berthou",
       deliverables: [
         "Mémoire de 117 pages",
-        "Huit entretiens semi-directifs",
+        "Entretiens visiteurs et institutions",
         "Corpus de six audioguides analysés",
         "Prototype testé à la Cité de l’Architecture et du Patrimoine",
       ],
@@ -332,17 +378,17 @@ export const DEFAULT_CONTENT: Content = {
         "Entre la promesse d’une médiation accessible et la réalité d’un outil marginalement adopté, qu’est-ce qui empêche l’audioguide mobile de tenir son rôle ? L’analyse du corpus donne une première piste : la quasi-totalité des interfaces force le regard vers l’écran — cartes, menus, listes de parcours — au détriment de ce que le visiteur est venu voir. Or le regard est la ressource rare dans un musée.",
       approach: [
         "Poser cinq hypothèses — conception, économique, organisationnelle, contextuelle, et le support lui-même — puis les mettre à l’épreuve d’un dispositif qualitatif.",
-        "Mener huit entretiens semi-directifs, côté visiteurs et côté professionnels de musée.",
+        "Mener quatre entretiens semi-directifs : deux côté visiteurs, deux côté institutions — un musée avec audioguide, un musée sans.",
         "Passer un questionnaire, 70 répondants.",
         "Analyser un corpus de six audioguides selon une grille commune.",
         "Concevoir l’inverse de ce que fait le corpus : un déclenchement simple, l’audio au centre, l’écran en périphérie, et pour idéal que le téléphone puisse rester dans la poche.",
         "Tester deux maquettes auprès de cinq visiteurs dans la Galerie des moulages — même interface de lecture, seule l’entrée change : saisie d’un numéro contre scan d’un QR code.",
       ],
       result:
-        "Quatre visiteurs sur cinq ont préféré le QR code : moins d’étapes, un geste plus familier. Mais la préférence est arrivée avec une réserve qui dit l’essentiel — « Quand je suis dans un musée, j’ai pas forcément envie d’être sur mon téléphone. » Je suis parti en cherchant un défaut de conception, et j’ai trouvé une chaîne de production : entre la conservation qui valide, la médiation qui écrit sous surveillance et le prestataire qui standardise, l’audioguide finit sans auteur identifiable. On peut concevoir la meilleure interface du monde, elle se heurtera toujours à une question de gouvernance et non de conception : qui paie pour la développer, et qui garantit qu’elle sera maintenue ? Ce mémoire est aussi l’endroit où j’ai dû reconnaître mon propre biais — je pensais en termes d’outil, pas en termes de visiteur, exactement le reproche que je faisais aux institutions.",
+        "Quatre visiteurs sur cinq ont préféré le QR code : moins d’étapes, un geste plus familier. Mais la préférence est arrivée avec une réserve qui dit l’essentiel — « Quand je suis dans un musée, j’ai pas forcément envie d’être sur mon téléphone. » Je suis parti en cherchant un défaut de conception, et j’ai trouvé une chaîne de production : entre la conservation qui valide, la médiation qui écrit sous surveillance et le prestataire qui standardise, l’audioguide finit sans auteur identifiable. On peut concevoir la meilleure interface du monde, elle se heurtera toujours à une question de gouvernance et non de conception : qui paie pour la développer, et qui garantit qu’elle sera maintenue ? Ce mémoire est aussi l’endroit où j’ai dû reconnaître mon propre biais — je pensais en termes d’outil, pas en termes de visiteur, exactement le reproche que je faisais aux institutions. Soutenu en juin 2026, major de promotion, meilleure note de mémoire de la promotion.",
       figures: [
         { value: "4 sur 5", label: "visiteurs ont préféré le QR code au numéro" },
-        { value: "70", label: "répondants au questionnaire, 8 entretiens" },
+        { value: "70", label: "répondants au questionnaire, 6 audioguides analysés" },
       ],
       images: [
         {
@@ -363,6 +409,107 @@ export const DEFAULT_CONTENT: Content = {
       ],
     },
 
+    /* -------------------------------------------------------- megacarte */
+    {
+      id: "megacarte",
+      shortTitle: "Megacarte",
+      title: "Megacarte — cartographier le patrimoine mégalithique avec ses habitants",
+      date: "2026",
+      thumb: "",
+      summary:
+        "Une plateforme cartographique contributive en contexte public, où le RGPD et l’accessibilité ont été traités comme des contraintes de conception dès la première maquette.",
+      role: "Recherche, conception et développement",
+      client: "Inrap — Institut national de recherches en archéologie préventive",
+      deliverables: [
+        "Recherche utilisateur et personas",
+        "Prototypage Figma mobile-first",
+        "Plateforme Next.js déployée",
+        "Back-office de modération",
+      ],
+      context:
+        "Le patrimoine mégalithique est dispersé, souvent hors des circuits balisés, et ceux qui le connaissent le mieux sont rarement des institutions : ce sont des habitants, des marcheurs, des passionnés. Une plateforme contributive était le bon geste — encore fallait-il la tenir dans un cadre public exigeant sur la sécurité, la souveraineté des données et la conformité.",
+      problem:
+        "Une contribution ouverte pose deux problèmes qu’on traite d’ordinaire trop tard. Le premier est humain : une validation a priori bloque tout et décourage les contributeurs, une publication libre expose l’institution. Le second est légal — collecter une contribution, c’est collecter une donnée personnelle et une cession de droits, et un correctif RGPD ajouté après coup se voit toujours.",
+      approach: [
+        "Partir de la recherche utilisateur : personas, cadrage fonctionnel, puis prototypage Figma en mobile d’abord — on contribue sur le terrain, pas au bureau.",
+        "Choisir la modération différée : publication directe assortie d’un signalement, plutôt qu’une validation a priori qui aurait étouffé les contributions.",
+        "Modéliser la base sur Supabase avec des politiques Row Level Security, plutôt que de filtrer côté application.",
+        "Demander un consentement explicite à la cession de droits, et stocker une empreinte d’IP et d’user-agent comme preuve légale au lieu de l’adresse en clair.",
+        "Ne stocker aucune donnée personnelle qui ne serve pas, et viser la conformité RGAA sur l’ensemble des parcours.",
+        "Héberger en Europe par principe de souveraineté — Bunny.net pour le stockage et la diffusion.",
+      ],
+      result:
+        "Une plateforme où la conformité n’est pas une couche ajoutée : elle a décidé du modèle de données et du parcours de contribution. C’est aussi le projet où j’ai eu à défendre des choix techniques devant une institution publique, ce qui relève autant de la posture que de la technique.",
+      images: [],
+    },
+
+    /* -------------------------------------------------------------- capa */
+    {
+      id: "capa",
+      shortTitle: "Bot audioguide CAPa",
+      title: "Bot audioguide — écrire pour une voix qui n’existe pas",
+      date: "2026",
+      thumb: "",
+      summary:
+        "Un pipeline qui produit, à partir d’un sujet, un script narratif calibré pour la synthèse vocale et sa musique d’ambiance. Testé en conditions réelles à la Cité de l’Architecture et du Patrimoine.",
+      role: "Conception du pipeline, prompt engineering, test terrain",
+      client: "Cité de l’Architecture et du Patrimoine — lié à l’alternance et au mémoire",
+      deliverables: [
+        "Pipeline de génération de scripts",
+        "Prompts de musique d’ambiance",
+        "Chaîne de mixage automatisée",
+        "Prototype testé au CAPa",
+      ],
+      context:
+        "Mon mémoire avait établi que le coût de production est l’un des vrais freins à l’audioguide : écrire, faire valider, enregistrer et mixer un parcours mobilise une chaîne entière, et c’est ce qui décide si un contenu existe ou non. Restait à savoir si l’on pouvait déplacer ce coût sans sacrifier la qualité de médiation.",
+      problem:
+        "Une IA générique écrit pour être lue, pas pour être entendue : phrases longues, ponctuation décorative, aucune pause respiratoire. Et surtout, elle produit spontanément le modèle du déficit — un savoir descendu vers un public supposé ignorant — quand la médiation muséale contemporaine défend l’inverse, un modèle dialogique. Le problème n’était donc pas technique, il était de transposer un cadre théorique en règles opérationnelles.",
+      approach: [
+        "Traduire le cadre théorique de la médiation — modèles dialogique contre déficit, d’après Bensaude-Vincent et Jacobi — en contraintes d’écriture automatisables.",
+        "Calibrer le texte pour la voix de synthèse : rythme, ponctuation, balises de pause inline propres à MiniMax TTS.",
+        "Produire en parallèle un prompt de musique en anglais, borné à 15-25 mots et contraint « background-friendly », pour ElevenLabs Music.",
+        "Choisir deux moteurs distincts plutôt qu’un outil tout-en-un, chacun sur ce qu’il fait le mieux.",
+        "Mixer en post-production avec ffmpeg et pydub, en appliquant un ducking sur le canal vocal.",
+        "Tester en conditions réelles au CAPa et itérer sur les retours.",
+      ],
+      result:
+        "Un pont direct entre la partie recherche du mémoire et un prototype qui tourne : le cadre théorique n’est pas resté un chapitre, il est devenu une contrainte de génération. Le test terrain reste à l’échelle d’un prototype, pas d’un déploiement.",
+      images: [],
+    },
+
+    /* -------------------------------------------------------- bookclub */
+    {
+      id: "thebookclub",
+      shortTitle: "TheBookClub",
+      title: "TheBookClub.cafe — un Letterboxd pour les livres",
+      date: "2026",
+      thumb: "",
+      summary:
+        "Bibliothèque personnelle, critiques, suivi de lecteurs. Une plateforme sociale complète menée seul, avec sa base construite livre par livre et son pipeline de diffusion auto-hébergé.",
+      role: "Conception, développement et exploitation",
+      client: "Projet personnel",
+      deliverables: [
+        "Plateforme Next.js en production",
+        "Base relationnelle œuvres / éditions / critiques",
+        "Pipeline de diffusion auto-hébergé",
+        "Audits de sécurité successifs",
+      ],
+      context:
+        "Il existe un Letterboxd pour les films et rien d’équivalent pour les livres : une bibliothèque personnelle, des notes, des critiques, et surtout des lecteurs qu’on suit parce qu’on aime ce qu’ils lisent. J’ai voulu construire cet objet-là, et l’opérer, pas seulement le maquetter.",
+      problem:
+        "Une plateforme de livres bute d’abord sur son catalogue. Importer une base entière donne des millions d’entrées mortes, des doublons et des métadonnées fausses ; ne rien importer laisse un service vide au premier utilisateur. Ma première idée — extraire les données depuis une URL Google Books — s’est révélée fragile dès qu’on sortait du cas nominal.",
+      approach: [
+        "Construire la base de façon organique : un livre absent entre dans le catalogue quand un lecteur le cherche et le renseigne.",
+        "Trancher l’arbitrage saisie d’URL contre saisie d’ISBN en faveur de l’ISBN, pour son universalité et parce qu’il se valide seul.",
+        "Modéliser proprement la relation œuvres / éditions / utilisateurs / critiques / listes, plutôt que d’aplatir un livre en une ligne.",
+        "Auto-héberger le pipeline de diffusion — un bot de génération de contenu vers Postiz, sur un VPS suisse.",
+        "Mener des audits de sécurité et de production datés, et écrire les scripts de nettoyage et de migration que la base réclamait.",
+      ],
+      result:
+        "Une plateforme sociale complète en service — authentification, contenu utilisateur, modération, diffusion — construite et opérée seul. Le choix de l’ISBN contre ma propre première idée est celui dont je suis le plus content : il a rendu générique ce qui aurait été bricolé.",
+      images: [],
+      links: [{ href: "https://thebookclub.cafe", label: "Ouvrir TheBookClub" }],
+    },
     /* ------------------------------------------------------------ wakey */
     {
       id: "wakey",
@@ -375,8 +522,8 @@ export const DEFAULT_CONTENT: Content = {
       role: "Conception, UX, développement, publication",
       client: "Projet personnel",
       deliverables: [
-        "Application iOS publiée",
-        "Parcours et écrans",
+        "Application iOS publiée sur l’App Store",
+        "Design system mobile complet",
         "Chaîne de collecte et de synthèse",
         "Abonnement Wakey+",
       ],
@@ -387,7 +534,8 @@ export const DEFAULT_CONTENT: Content = {
       approach: [
         "Fixer une dose plutôt qu’un flux : trois actualités par jour, deux centres d’intérêt, un résumé qui se termine. Quand la pile est vide, l’application le dit et s’arrête là.",
         "Tenir la même règle sur l’écran d’article — un contexte, une info, rien d’autre. Chaque écran ne fait qu’une chose.",
-        "Faire porter l’abonnement Wakey+ sur du volume et non sur des fonctionnalités : six actualités au lieu de trois, autant de catégories que voulu, trois euros par mois.",
+        "Construire un design system mobile dédié — composants, variantes, états — sans framework d’interface tiers.",
+        "Faire porter l’abonnement Wakey+ sur du volume et non sur des fonctionnalités : six actualités au lieu de trois, autant de catégories que voulu, trois euros par mois — un freemium à niveaux d’accès différenciés, pas une démo bridée.",
         "Brancher l’API Perplexity pour la collecte et la synthèse, et Supabase pour la base, l’authentification et le chargement quotidien.",
         "Ajouter Stripe pour la vérification des statuts d’abonnement, développer en React mobile via Expo, et travailler dans Cursor.",
         "Aller jusqu’à la publication sur l’App Store, revue comprise.",
