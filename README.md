@@ -168,9 +168,27 @@ Deux façons d’éditer, utilisables en même temps :
 - **En ligne** — les textes de la page deviennent modifiables sur place.
 - **Le panneau latéral** — **cloisonné par section** : il n’affiche que les
   champs de la section affichée, pas tout le contenu du site. L’en-tête et le
-  pied de page sont rattachés à l’Accueil ; les cas d’études n’exposent que
-  celui sélectionné dans le carrousel, avec un éditeur de blocs (texte /
-  image, réordonnables) ; les coups de cœur sont filtrables par recherche.
+  pied de page sont rattachés à l’Accueil ; les coups de cœur sont filtrables
+  par recherche.
+
+### Ordonner et replier
+
+Les trois collections — compétences, cas d’études, coups de cœur — sont des
+listes de lignes repliées : un titre, un sous-titre, un numéro d’ordre, et le
+formulaire complet en dessous une fois dépliée. « tout replier » / « tout
+déplier » basculent d’un coup, ce qui rend les 26 coups de cœur parcourables.
+
+La poignée à gauche fixe l’ordre de priorité, celui du rendu : ordre du menu
+des compétences, du carrousel, de la maçonnerie. On la glisse, ou — parce que
+le glisser-déposer seul exclut ceux qui ne peuvent pas maintenir un pointeur
+(WCAG 2.5.7) — **on la focalise et on presse ↑/↓**. La liste défile toute
+seule quand on approche des bords du panneau, sinon un déplacement se
+limiterait à ce qui tient à l’écran.
+
+Un point de conception : **une liste filtrée ne se réordonne pas.** Les lignes
+affichées sont alors un sous-ensemble, et déposer l’une « sur » l’autre ne dit
+rien de leurs positions réelles dans le tableau. La poignée est donc grisée
+tant que la recherche des coups de cœur est remplie, avec la raison affichée.
 
 Dans les blocs de texte et le paragraphe du pied de page, les liens s’écrivent
 `[texte affiché](https://url)` et sont rendus par `RichText`.

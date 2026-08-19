@@ -1,7 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
+  ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  GripVertical,
   Download,
   FileText,
   ImagePlus,
@@ -13,9 +17,9 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useContentStore, type ContentStore } from "@/lib/store";
 import { uploadFile } from "@/lib/supabase";
-import type { CaseStudy } from "@/lib/content";
 import type { SectionId } from "@/lib/router";
 import { Button } from "@/components/ui/Button";
 import { IconButton } from "@/components/ui/IconButton";
@@ -295,6 +299,264 @@ function Card({ children }: { children: React.ReactNode }) {
   );
 }
 
+/* ------------------------------------------------------------ sortable list */
+
+/**
+ * Collapsible, reorderable list of collection items.
+ *
+ * Every row is closed by default and shows only its title, so a collection of
+ * twenty-six entries stays legible and the order is visible at a glance. The
+ * grip reorders by drag, and the same grip responds to ↑/↓ when focused —
+ * a drag with no single-pointer alternative is unusable for anyone who cannot
+ * hold and move at once (WCAG 2.5.7).
+ *
+ * Reordering is disabled while a filter is active: the visible rows are then a
+ * subset, and dropping row 2 "onto" row 5 has no defensible meaning in the
+ * underlying array.
+ */
+function SortableList({
+  items,
+  onReorder,
+  openIds,
+  onToggle,
+  reorderDisabledReason,
+}: {
+  items: { id: string; title: string; subtitle?: string; body: React.ReactNode }[];
+  onReorder: (from: number, to: number) => void;
+  openIds: Set<string>;
+  onToggle: (id: string) => void;
+  reorderDisabledReason?: string;
+}) {
+  const rowsRef = useRef<(HTMLLIElement | null)[]>([]);
+  const listRef = useRef<HTMLUListElement>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
+  const autoScroll = useRef(0);
+
+  // The drawer body scrolls, and a long list does not fit. Without this, a row
+  // can only ever be dropped within the current viewport of the panel.
+  useEffect(() => {
+    if (dragIndex === null) return;
+    let frame = 0;
+    const step = () => {
+      frame = requestAnimationFrame(step);
+      if (autoScroll.current === 0) return;
+      const scroller = listRef.current?.closest("[data-cms-scroll]");
+      scroller?.scrollBy(0, autoScroll.current);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [dragIndex]);
+
+  const locate = (clientY: number) => {
+    let found = null as number | null;
+    // Rows removed by a filter leave stale entries behind; a detached node
+    // still answers getBoundingClientRect, with a zero rect at the origin.
+    rowsRef.current.slice(0, items.length).forEach((row, i) => {
+      if (!row) return;
+      const rect = row.getBoundingClientRect();
+      if (clientY >= rect.top && clientY <= rect.bottom) found = i;
+    });
+    return found;
+  };
+
+  const endDrag = () => {
+    if (dragIndex !== null && overIndex !== null && overIndex !== dragIndex) {
+      onReorder(dragIndex, overIndex);
+    }
+    setDragIndex(null);
+    setOverIndex(null);
+    autoScroll.current = 0;
+  };
+
+  return (
+    <ul ref={listRef} className="flex flex-col gap-2">
+      {items.map((item, index) => {
+        const open = openIds.has(item.id);
+        const isDragging = dragIndex === index;
+        const isTarget = dragIndex !== null && overIndex === index && !isDragging;
+
+        return (
+          <li
+            key={item.id}
+            ref={(node) => {
+              rowsRef.current[index] = node;
+            }}
+            className={cn(
+              "rounded-lg border border-line bg-surface",
+              "transition-[opacity,border-color] duration-150",
+              isDragging && "opacity-40",
+              isTarget && "border-accent",
+            )}
+          >
+            <div className="flex items-center gap-1 p-1.5">
+              {reorderDisabledReason ? (
+                <span
+                  aria-hidden="true"
+                  title={reorderDisabledReason}
+                  className="flex size-11 shrink-0 items-center justify-center text-gray-300 sm:size-9"
+                >
+                  <GripVertical size={15} strokeWidth={1.75} />
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  aria-label={`Réordonner ${item.title}. Flèches haut et bas pour déplacer.`}
+                  className="
+                    flex size-11 shrink-0 touch-none cursor-grab items-center justify-center
+                    rounded-md text-fg-faint transition-colors duration-150
+                    hover:bg-bg-subtle hover:text-fg active:cursor-grabbing sm:size-9
+                  "
+                  onPointerDown={(event) => {
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                    setDragIndex(index);
+                    setOverIndex(index);
+                  }}
+                  onPointerMove={(event) => {
+                    if (dragIndex === null) return;
+                    const at = locate(event.clientY);
+                    if (at !== null) setOverIndex(at);
+
+                    const scroller = listRef.current?.closest("[data-cms-scroll]");
+                    if (!scroller) return;
+                    const box = scroller.getBoundingClientRect();
+                    const margin = 48;
+                    if (event.clientY < box.top + margin) autoScroll.current = -8;
+                    else if (event.clientY > box.bottom - margin) autoScroll.current = 8;
+                    else autoScroll.current = 0;
+                  }}
+                  onPointerUp={endDrag}
+                  onPointerCancel={endDrag}
+                  onKeyDown={(event) => {
+                    if (event.key === "ArrowUp" && index > 0) {
+                      event.preventDefault();
+                      onReorder(index, index - 1);
+                    }
+                    if (event.key === "ArrowDown" && index < items.length - 1) {
+                      event.preventDefault();
+                      onReorder(index, index + 1);
+                    }
+                  }}
+                >
+                  <GripVertical size={15} strokeWidth={1.75} aria-hidden="true" />
+                </button>
+              )}
+
+              <button
+                type="button"
+                aria-expanded={open}
+                onClick={() => onToggle(item.id)}
+                className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-2 text-left hover:bg-bg-subtle"
+              >
+                <ChevronRight
+                  size={14}
+                  strokeWidth={2}
+                  aria-hidden="true"
+                  className={cn(
+                    "shrink-0 text-fg-subtle transition-transform duration-150",
+                    open && "rotate-90",
+                  )}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] font-medium">{item.title}</span>
+                  {item.subtitle && (
+                    <span className="block truncate text-[11px] text-fg-faint">
+                      {item.subtitle}
+                    </span>
+                  )}
+                </span>
+                <span className="shrink-0 font-mono text-[11px] text-fg-faint">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+              </button>
+            </div>
+
+            {open && <div className="flex flex-col gap-3 border-t border-line p-3">{item.body}</div>}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** Collapse-all / expand-all switch shown above a sortable list. */
+function CollapseBar({
+  openCount,
+  total,
+  onCollapseAll,
+  onExpandAll,
+  reorderable = true,
+}: {
+  openCount: number;
+  total: number;
+  onCollapseAll: () => void;
+  onExpandAll: () => void;
+  reorderable?: boolean;
+}) {
+  const allClosed = openCount === 0;
+  return (
+    <div className="flex flex-col gap-1.5 pb-1">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-mono text-[11px] whitespace-nowrap text-fg-faint">
+          {openCount} / {total} déplié{openCount > 1 ? "s" : ""}
+        </span>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="shrink-0"
+          onClick={allClosed ? onExpandAll : onCollapseAll}
+        >
+          {allClosed ? (
+            <>
+              <ChevronsUpDown size={14} strokeWidth={1.75} aria-hidden="true" />
+              tout déplier
+            </>
+          ) : (
+            <>
+              <ChevronsDownUp size={14} strokeWidth={1.75} aria-hidden="true" />
+              tout replier
+            </>
+          )}
+        </Button>
+      </div>
+      {reorderable && (
+        // The keyboard route is the accessible one, and nothing on screen
+        // hints at it — a grip icon only ever says "drag me".
+        <p className="text-[11px] leading-snug text-fg-faint">
+          Glissez la poignée pour changer l’ordre, ou ↑ / ↓ au clavier.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Moves one item of a collection and writes the new order back. */
+function reorder<T>(list: T[], from: number, to: number): T[] {
+  const next = list.slice();
+  const [moved] = next.splice(from, 1);
+  next.splice(to, 0, moved);
+  return next;
+}
+
+/** Open/closed state for one collection, with collapse-all helpers. */
+function useCollapse(initial: string[] = []) {
+  const [openIds, setOpenIds] = useState<Set<string>>(() => new Set(initial));
+  const toggle = useCallback((id: string) => {
+    setOpenIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+  const collapseAll = useCallback(() => setOpenIds(new Set()), []);
+  const expandAll = useCallback((ids: string[]) => setOpenIds(new Set(ids)), []);
+  const open = useCallback((id: string) => {
+    setOpenIds((current) => (current.has(id) ? current : new Set(current).add(id)));
+  }, []);
+  return { openIds, toggle, collapseAll, expandAll, open };
+}
+
 /* ------------------------------------------------------------------ panels */
 
 function HomePanel({ store }: { store: ContentStore }) {
@@ -385,49 +647,70 @@ function HomePanel({ store }: { store: ContentStore }) {
 
 function CompetencesPanel({ store }: { store: ContentStore }) {
   const { content, setField, removeItem, addItem } = store;
+  const { openIds, toggle, collapseAll, expandAll } = useCollapse();
+  const ids = content.skills.map((skill) => skill.id);
 
   return (
     <Group title={`Compétences · ${content.skills.length}`}>
-      {content.skills.map((skill, index) => (
-        <Card key={skill.id}>
-          <div className="flex items-center justify-between gap-2">
-            <span className="truncate text-[13px] font-medium">{skill.title}</span>
-            <DeleteButton what={skill.title} onConfirm={() => removeItem("skills", index)} />
-          </div>
-          <Field
-            label="titre"
-            value={skill.title}
-            onCommit={(value) => setField(`skills.${index}.title`, value)}
-          />
-          <Field
-            label="description"
-            multiline
-            value={skill.description}
-            onCommit={(value) => setField(`skills.${index}.description`, value)}
-          />
-          <Field
-            label="stack (séparée par des virgules)"
-            value={skill.stack.join(", ")}
-            onCommit={(value) =>
-              setField(
-                `skills.${index}.stack`,
-                value.split(",").map((item) => item.trim()).filter(Boolean),
-              )
-            }
-          />
-          <Field
-            label="cas d’études liés (identifiants, virgules)"
-            value={skill.cases.join(", ")}
-            onCommit={(value) =>
-              setField(
-                `skills.${index}.cases`,
-                value.split(",").map((item) => item.trim()).filter(Boolean),
-              )
-            }
-            hint={`Disponibles : ${content.cases.map((c) => c.id).join(", ")}`}
-          />
-        </Card>
-      ))}
+      <CollapseBar
+        openCount={openIds.size}
+        total={content.skills.length}
+        onCollapseAll={collapseAll}
+        onExpandAll={() => expandAll(ids)}
+      />
+
+      <SortableList
+        openIds={openIds}
+        onToggle={toggle}
+        onReorder={(from, to) => setField("skills", reorder(content.skills, from, to))}
+        items={content.skills.map((skill, index) => ({
+          id: skill.id,
+          title: skill.title,
+          subtitle: `${skill.stack.length} outils · ${skill.cases.length} cas`,
+          body: (
+            <>
+              <div className="flex items-center justify-end">
+                <DeleteButton
+                  what={skill.title}
+                  onConfirm={() => removeItem("skills", index)}
+                />
+              </div>
+              <Field
+                label="titre"
+                value={skill.title}
+                onCommit={(value) => setField(`skills.${index}.title`, value)}
+              />
+              <Field
+                label="description"
+                multiline
+                value={skill.description}
+                onCommit={(value) => setField(`skills.${index}.description`, value)}
+              />
+              <Field
+                label="stack (séparée par des virgules)"
+                value={skill.stack.join(", ")}
+                onCommit={(value) =>
+                  setField(
+                    `skills.${index}.stack`,
+                    value.split(",").map((item) => item.trim()).filter(Boolean),
+                  )
+                }
+              />
+              <Field
+                label="cas d’études liés (identifiants, virgules)"
+                value={skill.cases.join(", ")}
+                onCommit={(value) =>
+                  setField(
+                    `skills.${index}.cases`,
+                    value.split(",").map((item) => item.trim()).filter(Boolean),
+                  )
+                }
+                hint={`Disponibles : ${content.cases.map((c) => c.id).join(", ")}`}
+              />
+            </>
+          ),
+        }))}
+      />
 
       <Button
         size="sm"
@@ -483,11 +766,22 @@ function ListField({
  * no way to add or reorder them. That constraint is the feature — free blocks
  * had let six articles drift into six different shapes.
  */
-function CasEtudesPanel({ store, activeId }: { store: ContentStore; activeId: string }) {
-  const { content, setField, removeItem, addItem } = store;
-  const index = Math.max(0, content.cases.findIndex((study) => study.id === activeId));
-  const study: CaseStudy | undefined = content.cases[index];
-
+/**
+ * The editor for one case study.
+ *
+ * Mirrors the article one-for-one: the same sections, in the same order, with
+ * no way to add or reorder them. That constraint is the feature — free blocks
+ * had let six articles drift into six different shapes.
+ */
+function CaseEditor({
+  store,
+  index,
+}: {
+  store: ContentStore;
+  index: number;
+}) {
+  const { content, setField, removeItem } = store;
+  const study = content.cases[index];
   if (!study) return null;
 
   const at = (field: string) => `cases.${index}.${field}`;
@@ -496,17 +790,11 @@ function CasEtudesPanel({ store, activeId }: { store: ContentStore; activeId: st
 
   return (
     <>
-      <div className="border-b border-line py-3">
-        <p className="text-[12px] leading-snug text-fg-faint">
-          Vous modifiez <span className="font-medium text-fg">{study.shortTitle}</span>.
-          Sélectionnez une autre vignette dans le carrousel pour changer de cas.
-        </p>
+      <div className="flex items-center justify-end">
+        <DeleteButton what={study.shortTitle} onConfirm={() => removeItem("cases", index)} />
       </div>
 
       <Group title="En-tête">
-        <div className="flex items-center justify-end">
-          <DeleteButton what={study.shortTitle} onConfirm={() => removeItem("cases", index)} />
-        </div>
         <Field label="titre" value={study.title} onCommit={(v) => setField(at("title"), v)} />
         <Field
           label="titre court"
@@ -545,7 +833,7 @@ function CasEtudesPanel({ store, activeId }: { store: ContentStore; activeId: st
         />
       </Group>
 
-      <Group title="Récit">
+      <Group title="Récit" open={false}>
         <Field
           label="le contexte"
           multiline
@@ -623,11 +911,7 @@ function CasEtudesPanel({ store, activeId }: { store: ContentStore; activeId: st
                   label="Monter l’image"
                   disabled={i === 0}
                   className="size-8 border-transparent bg-transparent disabled:opacity-30 sm:size-8"
-                  onClick={() => {
-                    const next = study.images.slice();
-                    [next[i - 1], next[i]] = [next[i], next[i - 1]];
-                    setField(at("images"), next);
-                  }}
+                  onClick={() => setField(at("images"), reorder(study.images, i, i - 1))}
                 >
                   <ArrowUp size={14} strokeWidth={1.75} aria-hidden="true" />
                 </IconButton>
@@ -635,11 +919,7 @@ function CasEtudesPanel({ store, activeId }: { store: ContentStore; activeId: st
                   label="Descendre l’image"
                   disabled={i === study.images.length - 1}
                   className="size-8 border-transparent bg-transparent disabled:opacity-30 sm:size-8"
-                  onClick={() => {
-                    const next = study.images.slice();
-                    [next[i], next[i + 1]] = [next[i + 1], next[i]];
-                    setField(at("images"), next);
-                  }}
+                  onClick={() => setField(at("images"), reorder(study.images, i, i + 1))}
                 >
                   <ArrowDown size={14} strokeWidth={1.75} aria-hidden="true" />
                 </IconButton>
@@ -710,45 +990,93 @@ function CasEtudesPanel({ store, activeId }: { store: ContentStore; activeId: st
           ajouter un lien
         </Button>
       </Group>
-
-      <Group title="Nouveau cas" open={false}>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() =>
-            addItem("cases", {
-              id: `cas-${Date.now()}`,
-              title: "Nouveau cas d’études",
-              shortTitle: "Nouveau cas",
-              date: String(new Date().getFullYear()),
-              thumb: "",
-              summary: "",
-              role: "",
-              client: "",
-              deliverables: [],
-              context: "",
-              problem: "",
-              approach: [],
-              result: "",
-              images: [],
-            })
-          }
-        >
-          <Plus size={14} strokeWidth={1.75} aria-hidden="true" />
-          ajouter un cas d’études
-        </Button>
-      </Group>
     </>
   );
 }
 
+/**
+ * All case studies, in the order the carousel shows them.
+ *
+ * The panel used to expose only the case selected in the carousel, which made
+ * the running order invisible and unchangeable from here. Listing them all —
+ * collapsed, with the current one open — keeps the focus without hiding the
+ * sequence.
+ */
+function CasEtudesPanel({ store, activeId }: { store: ContentStore; activeId: string }) {
+  const { content, setField, addItem } = store;
+  const { openIds, toggle, collapseAll, expandAll, open } = useCollapse(activeId ? [activeId] : []);
+  const ids = content.cases.map((study) => study.id);
+
+  // Stepping through the carousel used to change what the panel showed; now
+  // that it lists every case, it opens the one on screen instead.
+  useEffect(() => {
+    if (activeId) open(activeId);
+  }, [activeId, open]);
+
+  return (
+    <Group title={`Cas d’études · ${content.cases.length}`}>
+      <p className="text-[12px] leading-snug text-fg-faint">
+        L’ordre ci-dessous est celui du carrousel.
+      </p>
+
+      <CollapseBar
+        openCount={openIds.size}
+        total={content.cases.length}
+        onCollapseAll={collapseAll}
+        onExpandAll={() => expandAll(ids)}
+      />
+
+      <SortableList
+        openIds={openIds}
+        onToggle={toggle}
+        onReorder={(from, to) => setField("cases", reorder(content.cases, from, to))}
+        items={content.cases.map((study, index) => ({
+          id: study.id,
+          title: study.shortTitle,
+          subtitle: `${study.date}${study.id === activeId ? " · affiché" : ""}`,
+          body: <CaseEditor store={store} index={index} />,
+        }))}
+      />
+
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() =>
+          addItem("cases", {
+            id: `cas-${Date.now()}`,
+            title: "Nouveau cas d’études",
+            shortTitle: "Nouveau cas",
+            date: String(new Date().getFullYear()),
+            thumb: "",
+            summary: "",
+            role: "",
+            client: "",
+            deliverables: [],
+            context: "",
+            problem: "",
+            approach: [],
+            result: "",
+            images: [],
+          })
+        }
+      >
+        <Plus size={14} strokeWidth={1.75} aria-hidden="true" />
+        ajouter un cas d’études
+      </Button>
+    </Group>
+  );
+}
 
 function CoupsDeCoeurPanel({ store, activeId }: { store: ContentStore; activeId: string | null }) {
   const { content, setField, removeItem, addItem } = store;
   const [query, setQuery] = useState("");
+  const { openIds, toggle, collapseAll, expandAll } = useCollapse(activeId ? [activeId] : []);
 
-  // 26 entries is too many to scroll past to reach one. Filter, and pin the
-  // item currently open in the lightbox to the top.
+  const filtering = query.trim().length > 0;
+
+  // 26 entries is too many to scroll past to reach one, so the list can be
+  // filtered — but a filtered list cannot be reordered: the rows are then a
+  // subset and dropping one "onto" another says nothing about the real array.
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return content.likes
@@ -759,9 +1087,8 @@ function CoupsDeCoeurPanel({ store, activeId }: { store: ContentStore; activeId:
           like.title.toLowerCase().includes(needle) ||
           like.author.toLowerCase().includes(needle) ||
           like.kind.toLowerCase().includes(needle),
-      )
-      .sort((a, b) => Number(b.like.id === activeId) - Number(a.like.id === activeId));
-  }, [content.likes, query, activeId]);
+      );
+  }, [content.likes, query]);
 
   return (
     <Group title={`Coups de cœur · ${content.likes.length}`}>
@@ -780,48 +1107,75 @@ function CoupsDeCoeurPanel({ store, activeId }: { store: ContentStore; activeId:
         />
       </label>
 
+      <CollapseBar
+        openCount={openIds.size}
+        total={shown.length}
+        onCollapseAll={collapseAll}
+        onExpandAll={() => expandAll(shown.map(({ like }) => like.id))}
+        reorderable={!filtering}
+      />
+
+      {filtering && (
+        <p className="text-[11px] leading-snug text-fg-faint">
+          Ordre figé pendant la recherche — videz le champ pour réordonner.
+        </p>
+      )}
+
       {shown.length === 0 && (
         <p className="py-4 text-center text-[13px] text-fg-faint">Aucun résultat.</p>
       )}
 
-      {shown.map(({ like, index }) => (
-        <Card key={like.id}>
-          <div className="flex items-center justify-between gap-2">
-            <span className="truncate text-[13px] font-medium">{like.title}</span>
-            <DeleteButton what={like.title} onConfirm={() => removeItem("likes", index)} />
-          </div>
-          <Field
-            label="titre"
-            value={like.title}
-            onCommit={(value) => setField(`likes.${index}.title`, value)}
-          />
-          <Field
-            label="auteur"
-            value={like.author}
-            onCommit={(value) => setField(`likes.${index}.author`, value)}
-          />
-          <Field
-            label="année"
-            value={like.date}
-            onCommit={(value) => setField(`likes.${index}.date`, value)}
-          />
-          <Field
-            label="type"
-            value={like.kind}
-            onCommit={(value) => setField(`likes.${index}.kind`, value)}
-          />
-          <Field
-            label="lien"
-            value={like.link}
-            onCommit={(value) => setField(`likes.${index}.link`, value)}
-          />
-          <FileField
-            label="visuel"
-            value={like.image}
-            onCommit={(value) => setField(`likes.${index}.image`, value)}
-          />
-        </Card>
-      ))}
+      <SortableList
+        openIds={openIds}
+        onToggle={toggle}
+        reorderDisabledReason={filtering ? "Videz la recherche pour réordonner" : undefined}
+        onReorder={(from, to) => setField("likes", reorder(content.likes, from, to))}
+        items={shown.map(({ like, index }) => ({
+          id: like.id,
+          title: like.title,
+          subtitle: `${like.author}${like.kind ? ` · ${like.kind}` : ""}`,
+          body: (
+            <>
+              <div className="flex items-center justify-end">
+                <DeleteButton
+                  what={like.title}
+                  onConfirm={() => removeItem("likes", index)}
+                />
+              </div>
+              <Field
+                label="titre"
+                value={like.title}
+                onCommit={(value) => setField(`likes.${index}.title`, value)}
+              />
+              <Field
+                label="auteur"
+                value={like.author}
+                onCommit={(value) => setField(`likes.${index}.author`, value)}
+              />
+              <Field
+                label="année"
+                value={like.date}
+                onCommit={(value) => setField(`likes.${index}.date`, value)}
+              />
+              <Field
+                label="type"
+                value={like.kind}
+                onCommit={(value) => setField(`likes.${index}.kind`, value)}
+              />
+              <Field
+                label="lien"
+                value={like.link}
+                onCommit={(value) => setField(`likes.${index}.link`, value)}
+              />
+              <FileField
+                label="visuel"
+                value={like.image}
+                onCommit={(value) => setField(`likes.${index}.image`, value)}
+              />
+            </>
+          ),
+        }))}
+      />
 
       <Button
         size="sm"
@@ -1124,7 +1478,7 @@ export function AdminDrawer({
         </IconButton>
       </header>
 
-      <div className="flex-1 overflow-y-auto overscroll-contain px-5">
+      <div data-cms-scroll className="flex-1 overflow-y-auto overscroll-contain px-5">
         {store.remoteEnabled && !store.adminEmail && <SignInPanel store={store} />}
 
         {section === "home" && <HomePanel store={store} />}
