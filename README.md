@@ -82,7 +82,27 @@ src/
 
   Le tout est chargé en `lazy` derrière un `IntersectionObserver`, donc three
   (~130 ko gzip) n’entre pas dans le bundle initial, et retombe sur un glyphe
-  statique si WebGL est indisponible.
+  statique si WebGL est indisponible — ou si le chunk lui-même n’arrive pas.
+  Cette seconde barrière n’est pas décorative : un `import()` rejeté traverse
+  `Suspense` jusqu’à la racine, et React 19 démonte alors tout l’arbre. Mesuré
+  sans le garde-fou, une tuile de pied de page injoignable rendait **0
+  caractère** sur la page entière.
+
+### Mouvement réduit
+
+Les trois effets — et eux seuls sur ce site — respectent
+`prefers-reduced-motion: reduce`. C’est le réglage « réduire les animations »
+du système, pas une option du navigateur :
+
+| effet | en mouvement réduit |
+| --- | --- |
+| `CursorTrail` | désactivé (une traînée sans mouvement n’est rien) |
+| `AsciiField` | une image fixe, pas de vagues |
+| `AsciiPlanet` | une image fixe, le globe ne tourne plus |
+
+Le réglage est lu une fois au montage : le basculer demande un rechargement.
+Si les trois semblent « ne pas charger » alors que le reste du site va bien,
+c’est la première chose à vérifier — c’est exactement l’ensemble qu’il touche.
 
 ## Publication du contenu
 
