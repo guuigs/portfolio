@@ -1,6 +1,7 @@
 import { Github, Linkedin, Mail } from "lucide-react";
 import { hrefFor, isModifiedClick } from "@/lib/router";
 import type { Socials } from "@/lib/content";
+import { useLocale, translate } from "@/lib/i18n";
 import { Wordmark } from "./Wordmark";
 
 export interface HeaderProps {
@@ -16,6 +17,7 @@ const ICON_LINK =
 
 export function Header({ socials, logo, onNavigate }: HeaderProps) {
   const homeHref = hrefFor("home");
+  const { locale } = useLocale();
 
   return (
     <header
@@ -45,7 +47,7 @@ export function Header({ socials, logo, onNavigate }: HeaderProps) {
           <Wordmark className="h-8 w-auto" src={logo} />
         </a>
 
-        <nav aria-label="Réseaux" className="flex items-center gap-0.5">
+        <nav aria-label={translate(locale, "socials")} className="flex items-center gap-0.5">
           <a
             href={socials.github}
             target="_blank"
@@ -64,7 +66,7 @@ export function Header({ socials, logo, onNavigate }: HeaderProps) {
           >
             <Linkedin size={17} strokeWidth={1.75} aria-hidden="true" />
           </a>
-          <a href={socials.mail} aria-label="Envoyer un mail" className={ICON_LINK}>
+          <a href={socials.mail} aria-label={translate(locale, "sendMail")} className={ICON_LINK}>
             <Mail size={17} strokeWidth={1.75} aria-hidden="true" />
           </a>
 
@@ -79,7 +81,7 @@ export function Header({ socials, logo, onNavigate }: HeaderProps) {
               hover:border-gray-400 hover:bg-bg-subtle
             "
           >
-            mon cv
+            {translate(locale, "myResume")}
           </a>
         </nav>
       </div>

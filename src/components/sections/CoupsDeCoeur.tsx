@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Dices } from "lucide-react";
 import type { Content, Like } from "@/lib/content";
 import { Lightbox } from "@/components/ui/Lightbox";
+import { useLocale, translate } from "@/lib/i18n";
 
 export interface CoupsDeCoeurProps {
   content: Content;
@@ -32,6 +33,7 @@ function shuffle(items: Like[], seed: number): Like[] {
 }
 
 export function CoupsDeCoeur({ content, selectedId, onSelect }: CoupsDeCoeurProps) {
+  const { locale } = useLocale();
   // Seeded on mount, so every visit to the section deals a new hand. The
   // seed is kept rather than reshuffling per render, otherwise the grid would
   // reorder itself on any unrelated state change.
@@ -40,13 +42,13 @@ export function CoupsDeCoeur({ content, selectedId, onSelect }: CoupsDeCoeurProp
   const likes = useMemo(() => shuffle(content.likes, seed), [content.likes, seed]);
 
   return (
-    <section aria-label="Coups de cœur" className="gutter-x mx-auto w-full max-w-5xl">
+    <section aria-label={translate(locale, "likes")} className="gutter-x mx-auto w-full max-w-5xl">
       <div className="mb-4 flex">
         <button
           type="button"
           onClick={() => setSeed(Math.floor(Math.random() * 2 ** 31))}
-          aria-label="Redistribuer les coups de cœur au hasard"
-          title="Redistribuer au hasard"
+          aria-label={translate(locale, "shuffleLikes")}
+          title={translate(locale, "shuffle")}
           className="
             group inline-flex size-11 items-center justify-center rounded-md
             text-fg-faint transition-colors duration-150 ease-out

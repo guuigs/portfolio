@@ -14,24 +14,32 @@ import { ContentProvider, useContentStore } from "@/lib/store";
 import { hrefFor, useRoute } from "@/lib/router";
 import { withViewTransition } from "@/lib/view-transition";
 import { cn } from "@/lib/utils";
+import { LocaleProvider, useLocale, translate } from "@/lib/i18n";
+import { localizeContent } from "@/lib/content.en";
 
 /** The square mark in `public/`, used whenever no logo has been uploaded —
  *  the default header wordmark is 113×40 and would be an unreadable sliver
  *  once squeezed into a 16px tab icon. */
 const FALLBACK_FAVICON = "/logo-reduit.png";
 
-const SECTION_TITLES: Record<string, string> = {
-  home: "Guilhem Terrier — portfolio",
-  competences: "Compétences — Guilhem Terrier",
-  "cas-etudes": "Cas d’études — Guilhem Terrier",
-  "coups-de-coeur": "Coups de cœur — Guilhem Terrier",
+const SECTION_TITLES: Record<string, Record<"fr" | "en", string>> = {
+  home: { fr: "Guilhem Terrier — portfolio", en: "Guilhem Terrier — portfolio" },
+  competences: { fr: "Compétences — Guilhem Terrier", en: "Skills — Guilhem Terrier" },
+  "cas-etudes": { fr: "Cas d’études — Guilhem Terrier", en: "Case studies — Guilhem Terrier" },
+  "coups-de-coeur": { fr: "Coups de cœur — Guilhem Terrier", en: "Favourites — Guilhem Terrier" },
 };
 
 function Portfolio() {
   const store = useContentStore();
-  const { content, setField } = store;
+  const { content: rawContent, setField } = store;
   const { route, navigate } = useRoute();
   const [admin, setAdmin] = useState(false);
+  const { locale } = useLocale();
+
+  // The CMS always edits the French object, so admin mode never reads the
+  // English overlay — otherwise a saved edit could write translated text
+  // back into the canonical French draft.
+  const content = admin ? rawContent : localizeContent(rawContent, locale);
 
   const isHome = route.section === "home";
   const activeCaseId = route.projet ?? content.cases[0]?.id ?? "";
@@ -55,10 +63,18 @@ function Portfolio() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  // The tab title must describe the section you are actually looking at.
+  // The tab title must describe the section you are actually looking at,
+  // in whichever language the page is currently showing.
   useEffect(() => {
-    document.title = SECTION_TITLES[route.section] ?? SECTION_TITLES.home;
-  }, [route.section]);
+    document.title = (SECTION_TITLES[route.section] ?? SECTION_TITLES.home)[locale];
+  }, [route.section, locale]);
+
+  // Same rule for the meta description search engines and share cards read.
+  useEffect(() => {
+    document
+      .querySelector('meta[name="description"]')
+      ?.setAttribute("content", translate(locale, "metaDescription"));
+  }, [locale]);
 
   // The tab icon follows the header logo, so uploading one changes both and
   // the two can never drift apart. index.html keeps its own <link> for the
@@ -114,7 +130,7 @@ function Portfolio() {
           focus:px-4 focus:py-2 focus:text-sm
         "
       >
-        Aller au contenu
+        {translate(locale, "skipToContent")}
       </a>
 
       <Header socials={content.socials} logo={content.profile.logo} onNavigate={go} />
@@ -216,8 +232,10 @@ function Portfolio() {
 
 export default function App() {
   return (
-    <ContentProvider>
-      <Portfolio />
-    </ContentProvider>
+    <LocaleProvider>
+      <ContentProvider>
+        <Portfolio />
+      </ContentProvider>
+    </LocaleProvider>
   );
 }
