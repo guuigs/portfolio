@@ -15,9 +15,15 @@ const ICON_LINK =
   "inline-flex size-11 sm:size-9 items-center justify-center rounded-md text-fg-muted " +
   "transition-[background-color,color] duration-150 ease-out hover:bg-gray-100 hover:text-fg";
 
+/** The CMS only ever edits one CV (the French one, via `socials.cv`) — the
+ *  English PDF is a fixed asset, swapped in by locale rather than added as
+ *  a second admin field. */
+const CV_EN_HREF = "/pdf/cv-en.pdf";
+
 export function Header({ socials, logo, onNavigate }: HeaderProps) {
   const homeHref = hrefFor("home");
   const { locale } = useLocale();
+  const cvHref = locale === "en" ? CV_EN_HREF : socials.cv;
 
   return (
     <header
@@ -71,7 +77,7 @@ export function Header({ socials, logo, onNavigate }: HeaderProps) {
           </a>
 
           <a
-            href={socials.cv}
+            href={cvHref}
             target="_blank"
             rel="noopener noreferrer"
             className="
