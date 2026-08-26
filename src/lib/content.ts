@@ -63,11 +63,16 @@ export const CONTENT_VERSION = 3;
 export interface Figure {
   value: string;
   label: string;
+  /** English translation of `label`, edited from the CMS like everything
+   *  else here. Falls back to a bundled translation, then to `label`
+   *  itself — see `lib/content.en.ts`. */
+  labelEn?: string;
 }
 
 export interface CaseImage {
   value: string;
   caption: string;
+  captionEn?: string;
   /** Natural ratio, so a screenshot is shown whole rather than cropped to 4:3. */
   ratio?: string;
 }
@@ -111,7 +116,24 @@ export interface CaseStudy {
   /** Measured outcomes. Omitted rather than invented. */
   figures?: Figure[];
   images: CaseImage[];
-  links?: { href: string; label: string }[];
+  links?: { href: string; label: string; labelEn?: string }[];
+
+  /* ---- english translations ----
+     Every field above has an optional English counterpart, edited from the
+     CMS exactly like the French one and published to Supabase the same way.
+     Empty/absent falls back to a bundled translation and then to the French
+     text — see `localizeContent` in `lib/content.en.ts`. Nothing here is
+     ever overridden by that bundled fallback once a real value is set. */
+  titleEn?: string;
+  shortTitleEn?: string;
+  summaryEn?: string;
+  roleEn?: string;
+  clientEn?: string;
+  deliverablesEn?: string[];
+  contextEn?: string;
+  problemEn?: string;
+  approachEn?: string[];
+  resultEn?: string;
 }
 
 export interface Skill {
@@ -121,6 +143,9 @@ export interface Skill {
   stack: string[];
   /** CaseStudy ids surfaced in this skill's rail. */
   cases: string[];
+  titleEn?: string;
+  descriptionEn?: string;
+  stackEn?: string[];
 }
 
 export interface Like {
@@ -132,6 +157,7 @@ export interface Like {
   link: string;
   image: string;
   ratio: string;
+  kindEn?: string;
 }
 
 export interface Profile {
@@ -151,6 +177,11 @@ export interface Profile {
   footerLine: string;
   /** The paragraph under the footer heading. Supports [texte](url) links. */
   footerBody: string;
+  heroTitleEn?: string;
+  heroIntroEn?: string;
+  footerNameEn?: string;
+  footerLineEn?: string;
+  footerBodyEn?: string;
 }
 
 export interface Socials {

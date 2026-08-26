@@ -641,6 +641,42 @@ function HomePanel({ store }: { store: ContentStore }) {
           hint="Les liens s’écrivent [texte affiché](https://url)."
         />
       </Group>
+
+      <Group title="Traduction (EN)" open={false}>
+        <p className="text-[12px] leading-snug text-fg-faint">
+          Affiché aux visiteurs en anglais. Vide = traduction de repli intégrée
+          au site, jamais le texte français.
+        </p>
+        <Field
+          label="titre principal (EN)"
+          value={profile.heroTitleEn ?? ""}
+          onCommit={(value) => setField("profile.heroTitleEn", value)}
+        />
+        <Field
+          label="introduction (EN)"
+          multiline
+          value={profile.heroIntroEn ?? ""}
+          onCommit={(value) => setField("profile.heroIntroEn", value)}
+        />
+        <Field
+          label="accroche — début (EN)"
+          value={profile.footerNameEn ?? ""}
+          onCommit={(value) => setField("profile.footerNameEn", value)}
+        />
+        <Field
+          label="accroche — suite (EN)"
+          value={profile.footerLineEn ?? ""}
+          onCommit={(value) => setField("profile.footerLineEn", value)}
+        />
+        <Field
+          label="paragraphe (EN)"
+          multiline
+          rows={6}
+          value={profile.footerBodyEn ?? ""}
+          onCommit={(value) => setField("profile.footerBodyEn", value)}
+          hint="Les liens s’écrivent [texte affiché](https://url)."
+        />
+      </Group>
     </>
   );
 }
@@ -706,6 +742,27 @@ function CompetencesPanel({ store }: { store: ContentStore }) {
                   )
                 }
                 hint={`Disponibles : ${content.cases.map((c) => c.id).join(", ")}`}
+              />
+              <Field
+                label="titre (EN)"
+                value={skill.titleEn ?? ""}
+                onCommit={(value) => setField(`skills.${index}.titleEn`, value)}
+              />
+              <Field
+                label="description (EN)"
+                multiline
+                value={skill.descriptionEn ?? ""}
+                onCommit={(value) => setField(`skills.${index}.descriptionEn`, value)}
+              />
+              <Field
+                label="stack (EN, séparée par des virgules)"
+                value={(skill.stackEn ?? []).join(", ")}
+                onCommit={(value) =>
+                  setField(
+                    `skills.${index}.stackEn`,
+                    value.split(",").map((item) => item.trim()).filter(Boolean),
+                  )
+                }
               />
             </>
           ),
@@ -889,6 +946,11 @@ function CaseEditor({
               value={figure.label}
               onCommit={(v) => setField(at(`figures.${i}.label`), v)}
             />
+            <Field
+              label="libellé (EN)"
+              value={figure.labelEn ?? ""}
+              onCommit={(v) => setField(at(`figures.${i}.labelEn`), v)}
+            />
           </Card>
         ))}
         <Button
@@ -942,6 +1004,11 @@ function CaseEditor({
               onCommit={(v) => setField(at(`images.${i}.caption`), v)}
             />
             <Field
+              label="légende (EN)"
+              value={image.captionEn ?? ""}
+              onCommit={(v) => setField(at(`images.${i}.captionEn`), v)}
+            />
+            <Field
               label="proportions"
               value={image.ratio ?? ""}
               onCommit={(v) => setField(at(`images.${i}.ratio`), v || undefined)}
@@ -975,6 +1042,11 @@ function CaseEditor({
               onCommit={(v) => setField(at(`links.${i}.label`), v)}
             />
             <Field
+              label="libellé (EN)"
+              value={link.labelEn ?? ""}
+              onCommit={(v) => setField(at(`links.${i}.labelEn`), v)}
+            />
+            <Field
               label="url"
               value={link.href}
               onCommit={(v) => setField(at(`links.${i}.href`), v)}
@@ -989,6 +1061,73 @@ function CaseEditor({
           <Plus size={14} strokeWidth={1.75} aria-hidden="true" />
           ajouter un lien
         </Button>
+      </Group>
+
+      <Group title="Traduction (EN)" open={false}>
+        <p className="text-[12px] leading-snug text-fg-faint">
+          Affiché aux visiteurs en anglais. Vide = traduction de repli intégrée
+          au site, jamais le texte français. Les chiffres, images et liens se
+          traduisent juste au-dessus, dans leurs groupes respectifs.
+        </p>
+        <Field
+          label="titre (EN)"
+          value={study.titleEn ?? ""}
+          onCommit={(v) => setField(at("titleEn"), v)}
+        />
+        <Field
+          label="titre court (EN)"
+          value={study.shortTitleEn ?? ""}
+          onCommit={(v) => setField(at("shortTitleEn"), v)}
+        />
+        <Field
+          label="résumé (EN)"
+          multiline
+          rows={3}
+          value={study.summaryEn ?? ""}
+          onCommit={(v) => setField(at("summaryEn"), v)}
+        />
+        <Field
+          label="rôle (EN)"
+          value={study.roleEn ?? ""}
+          onCommit={(v) => setField(at("roleEn"), v)}
+        />
+        <Field
+          label="contexte (EN)"
+          value={study.clientEn ?? ""}
+          onCommit={(v) => setField(at("clientEn"), v)}
+        />
+        <ListField
+          label="livrables (EN, un par ligne)"
+          items={study.deliverablesEn ?? []}
+          onCommit={(items) => setField(at("deliverablesEn"), items)}
+        />
+        <Field
+          label="le contexte (EN)"
+          multiline
+          rows={5}
+          value={study.contextEn ?? ""}
+          onCommit={(v) => setField(at("contextEn"), v)}
+          hint="Les liens s’écrivent [texte](url)."
+        />
+        <Field
+          label="le problème (EN)"
+          multiline
+          rows={5}
+          value={study.problemEn ?? ""}
+          onCommit={(v) => setField(at("problemEn"), v)}
+        />
+        <ListField
+          label="l’approche (EN, une action par ligne)"
+          items={study.approachEn ?? []}
+          onCommit={(items) => setField(at("approachEn"), items)}
+        />
+        <Field
+          label="le résultat (EN)"
+          multiline
+          rows={5}
+          value={study.resultEn ?? ""}
+          onCommit={(v) => setField(at("resultEn"), v)}
+        />
       </Group>
     </>
   );
@@ -1161,6 +1300,11 @@ function CoupsDeCoeurPanel({ store, activeId }: { store: ContentStore; activeId:
                 label="type"
                 value={like.kind}
                 onCommit={(value) => setField(`likes.${index}.kind`, value)}
+              />
+              <Field
+                label="type (EN)"
+                value={like.kindEn ?? ""}
+                onCommit={(value) => setField(`likes.${index}.kindEn`, value)}
               />
               <Field
                 label="lien"

@@ -1,12 +1,18 @@
 /* ============================================================
-   English translations, applied over `content.ts` at render time.
+   English fallback copy — never authoritative.
 
-   The CMS (Ctrl+A) only ever edits the French content — that stays
-   the single source of truth published to Supabase. This file is a
-   translation *overlay*, keyed by the same ids, so it never has to
-   repeat images, hrefs, ratios or ids: only the words change. When
-   an id has no entry here, the French text is shown as a fallback
-   rather than nothing, so a translation gap never blanks a section.
+   The real English text lives on the content itself (`titleEn`,
+   `descriptionEn`, …), edited from the CMS exactly like the French
+   fields and published to Supabase the same way. Whatever is actually
+   published ALWAYS wins over what's declared here.
+
+   This file only fills the gap before that happens: a bundled English
+   translation of the copy this repo ships, keyed by id, shown only when
+   the live content has no `*En` value of its own (empty, missing, or —
+   for a case/skill this build doesn't know about — no entry at all, in
+   which case the French text itself is the last resort). It exists so
+   the site doesn't read half-translated the moment English is turned on,
+   not so this file's wording can quietly outlive an edit made in Supabase.
    ============================================================ */
 
 import type { Content } from "./content";
@@ -489,49 +495,81 @@ const EN_LIKE_KIND: Record<string, string> = {
   "musique": "music",
 };
 
+/** A live `*En` value wins whenever it's actually been set; otherwise the
+ *  bundled seed, then the French text — never the reverse. */
+function pick(live: string | undefined, seed: string | undefined, fr: string): string {
+  if (live && live.trim()) return live;
+  if (seed && seed.trim()) return seed;
+  return fr;
+}
+
+function pickList(live: string[] | undefined, seed: string[] | undefined, fr: string[]): string[] {
+  if (live && live.length > 0) return live;
+  if (seed && seed.length > 0) return seed;
+  return fr;
+}
+
 /**
- * Applies the English overlay onto a (possibly admin-edited) content tree.
- * `fr` is returned untouched — the overlay only ever runs for `en`, and the
- * admin layer always edits the French object directly regardless of the
- * locale on screen, so this function is never in the write path.
+ * Resolves the English content actually shown, field by field, in strict
+ * priority order: what's published in Supabase (`content.*En`), then the
+ * bundled fallback above, then the French text itself. The admin layer
+ * always edits the French object regardless of the locale on screen, so
+ * this function is never in the write path — it only decides what a
+ * visitor reads.
  */
 export function localizeContent(content: Content, locale: Locale): Content {
   if (locale === "fr") return content;
 
   return {
     ...content,
-    profile: { ...content.profile, ...EN_PROFILE },
+    profile: {
+      ...content.profile,
+      heroTitle: pick(content.profile.heroTitleEn, EN_PROFILE.heroTitle, content.profile.heroTitle),
+      heroIntro: pick(content.profile.heroIntroEn, EN_PROFILE.heroIntro, content.profile.heroIntro),
+      footerName: pick(content.profile.footerNameEn, EN_PROFILE.footerName, content.profile.footerName),
+      footerLine: pick(content.profile.footerLineEn, EN_PROFILE.footerLine, content.profile.footerLine),
+      footerBody: pick(content.profile.footerBodyEn, EN_PROFILE.footerBody, content.profile.footerBody),
+    },
     skills: content.skills.map((skill) => {
-      const tr = EN_SKILLS[skill.id];
-      if (!tr) return skill;
-      return { ...skill, title: tr.title, description: tr.description, stack: tr.stack };
-    }),
-    cases: content.cases.map((study) => {
-      const tr = EN_CASES[study.id];
-      if (!tr) return study;
+      const seed = EN_SKILLS[skill.id];
       return {
-        ...study,
-        title: tr.title,
-        shortTitle: tr.shortTitle ?? study.shortTitle,
-        summary: tr.summary,
-        role: tr.role,
-        client: tr.client,
-        deliverables: tr.deliverables,
-        context: tr.context,
-        problem: tr.problem,
-        approach: tr.approach,
-        result: tr.result,
-        figures: study.figures?.map((figure, i) =>
-          tr.figures?.[i] ? { ...figure, label: tr.figures[i].label } : figure,
-        ),
-        images: study.images.map((image, i) =>
-          tr.images?.[i] ? { ...image, caption: tr.images[i].caption } : image,
-        ),
-        links: study.links?.map((link, i) =>
-          tr.links?.[i] ? { ...link, label: tr.links[i].label } : link,
-        ),
+        ...skill,
+        title: pick(skill.titleEn, seed?.title, skill.title),
+        description: pick(skill.descriptionEn, seed?.description, skill.description),
+        stack: pickList(skill.stackEn, seed?.stack, skill.stack),
       };
     }),
-    likes: content.likes.map((like) => ({ ...like, kind: EN_LIKE_KIND[like.kind] ?? like.kind })),
+    cases: content.cases.map((study) => {
+      const seed = EN_CASES[study.id];
+      return {
+        ...study,
+        title: pick(study.titleEn, seed?.title, study.title),
+        shortTitle: pick(study.shortTitleEn, seed?.shortTitle, study.shortTitle),
+        summary: pick(study.summaryEn, seed?.summary, study.summary),
+        role: pick(study.roleEn, seed?.role, study.role),
+        client: pick(study.clientEn, seed?.client, study.client),
+        deliverables: pickList(study.deliverablesEn, seed?.deliverables, study.deliverables),
+        context: pick(study.contextEn, seed?.context, study.context),
+        problem: pick(study.problemEn, seed?.problem, study.problem),
+        approach: pickList(study.approachEn, seed?.approach, study.approach),
+        result: pick(study.resultEn, seed?.result, study.result),
+        figures: study.figures?.map((figure, i) => ({
+          ...figure,
+          label: pick(figure.labelEn, seed?.figures?.[i]?.label, figure.label),
+        })),
+        images: study.images.map((image, i) => ({
+          ...image,
+          caption: pick(image.captionEn, seed?.images?.[i]?.caption, image.caption),
+        })),
+        links: study.links?.map((link, i) => ({
+          ...link,
+          label: pick(link.labelEn, seed?.links?.[i]?.label, link.label),
+        })),
+      };
+    }),
+    likes: content.likes.map((like) => ({
+      ...like,
+      kind: pick(like.kindEn, EN_LIKE_KIND[like.kind], like.kind),
+    })),
   };
 }
