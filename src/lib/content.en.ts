@@ -1,21 +1,24 @@
 /* ============================================================
-   English fallback copy — never authoritative.
+   English fallback copy — never authoritative, and never stale.
 
    The real English text lives on the content itself (`titleEn`,
    `descriptionEn`, …), edited from the CMS exactly like the French
    fields and published to Supabase the same way. Whatever is actually
    published ALWAYS wins over what's declared here.
 
-   This file only fills the gap before that happens: a bundled English
-   translation of the copy this repo ships, keyed by id, shown only when
-   the live content has no `*En` value of its own (empty, missing, or —
-   for a case/skill this build doesn't know about — no entry at all, in
-   which case the French text itself is the last resort). It exists so
-   the site doesn't read half-translated the moment English is turned on,
-   not so this file's wording can quietly outlive an edit made in Supabase.
+   The translations below only fill the gap before that happens, and they
+   are bound to the French they were written for: each one is a
+   translation of the copy seeded in `content.ts`, so it is only shown
+   while the live French still matches that seed, character for character.
+   Edit a French paragraph in the CMS and its bundled English translation
+   stops being true of it — so it is dropped on the spot and the live
+   French shows through instead, until a real `*En` value is published.
+
+   That rule is the whole point of this file's design: hard-coded English
+   can never outlive, contradict, or mask an edit made in Supabase.
    ============================================================ */
 
-import type { Content } from "./content";
+import { DEFAULT_CONTENT, type Content } from "./content";
 import type { Locale } from "./i18n";
 
 interface ProfileTranslation {
@@ -495,81 +498,119 @@ const EN_LIKE_KIND: Record<string, string> = {
   "musique": "music",
 };
 
-/** A live `*En` value wins whenever it's actually been set; otherwise the
- *  bundled seed, then the French text — never the reverse. */
-function pick(live: string | undefined, seed: string | undefined, fr: string): string {
-  if (live && live.trim()) return live;
-  if (seed && seed.trim()) return seed;
+/* -------------------------------------------------------- resolution rules */
+
+/* The French this file's translations were written against. A bundled
+   translation is only true of *this* wording, so it is checked against it
+   before being shown — see `pick`. Looked up by id rather than by position,
+   since the CMS can reorder and add entries. */
+const SEED_SKILLS_FR = new Map(DEFAULT_CONTENT.skills.map((skill) => [skill.id, skill]));
+const SEED_CASES_FR = new Map(DEFAULT_CONTENT.cases.map((study) => [study.id, study]));
+
+const filled = (value: string | undefined): value is string =>
+  value !== undefined && value.trim() !== "";
+
+const sameList = (a: string[], b: string[] | undefined): boolean =>
+  b !== undefined && a.length === b.length && a.every((item, i) => item === b[i]);
+
+/**
+ * Resolves one field, in strict priority order:
+ *
+ *   1. `live` — the English published in Supabase. Always wins, unconditionally.
+ *   2. `seedEn` — the bundled translation, but ONLY while `fr` is still
+ *      byte-for-byte the `seedFr` it was written for. Once the French has been
+ *      edited, this translation describes text that no longer exists.
+ *   3. `fr` — the live French. Honest, and never contradicts what's published.
+ */
+function pick(
+  live: string | undefined,
+  seedEn: string | undefined,
+  fr: string,
+  seedFr: string | undefined,
+): string {
+  if (filled(live)) return live;
+  if (filled(seedEn) && fr === seedFr) return seedEn;
   return fr;
 }
 
-function pickList(live: string[] | undefined, seed: string[] | undefined, fr: string[]): string[] {
+/** Same rule, for the list fields (stack, deliverables, approach). */
+function pickList(
+  live: string[] | undefined,
+  seedEn: string[] | undefined,
+  fr: string[],
+  seedFr: string[] | undefined,
+): string[] {
   if (live && live.length > 0) return live;
-  if (seed && seed.length > 0) return seed;
+  if (seedEn && seedEn.length > 0 && sameList(fr, seedFr)) return seedEn;
   return fr;
 }
 
 /**
- * Resolves the English content actually shown, field by field, in strict
- * priority order: what's published in Supabase (`content.*En`), then the
- * bundled fallback above, then the French text itself. The admin layer
- * always edits the French object regardless of the locale on screen, so
- * this function is never in the write path — it only decides what a
- * visitor reads.
+ * Resolves the English content a visitor actually reads, field by field.
+ *
+ * The admin layer always edits the French object regardless of the locale on
+ * screen, so this is never in the write path — it only decides what is shown.
  */
 export function localizeContent(content: Content, locale: Locale): Content {
   if (locale === "fr") return content;
 
+  const { profile } = content;
+  const seedProfileFr = DEFAULT_CONTENT.profile;
+
   return {
     ...content,
     profile: {
-      ...content.profile,
-      heroTitle: pick(content.profile.heroTitleEn, EN_PROFILE.heroTitle, content.profile.heroTitle),
-      heroIntro: pick(content.profile.heroIntroEn, EN_PROFILE.heroIntro, content.profile.heroIntro),
-      footerName: pick(content.profile.footerNameEn, EN_PROFILE.footerName, content.profile.footerName),
-      footerLine: pick(content.profile.footerLineEn, EN_PROFILE.footerLine, content.profile.footerLine),
-      footerBody: pick(content.profile.footerBodyEn, EN_PROFILE.footerBody, content.profile.footerBody),
+      ...profile,
+      heroTitle: pick(profile.heroTitleEn, EN_PROFILE.heroTitle, profile.heroTitle, seedProfileFr.heroTitle),
+      heroIntro: pick(profile.heroIntroEn, EN_PROFILE.heroIntro, profile.heroIntro, seedProfileFr.heroIntro),
+      footerName: pick(profile.footerNameEn, EN_PROFILE.footerName, profile.footerName, seedProfileFr.footerName),
+      footerLine: pick(profile.footerLineEn, EN_PROFILE.footerLine, profile.footerLine, seedProfileFr.footerLine),
+      footerBody: pick(profile.footerBodyEn, EN_PROFILE.footerBody, profile.footerBody, seedProfileFr.footerBody),
     },
     skills: content.skills.map((skill) => {
-      const seed = EN_SKILLS[skill.id];
+      const seedEn = EN_SKILLS[skill.id];
+      const seedFr = SEED_SKILLS_FR.get(skill.id);
       return {
         ...skill,
-        title: pick(skill.titleEn, seed?.title, skill.title),
-        description: pick(skill.descriptionEn, seed?.description, skill.description),
-        stack: pickList(skill.stackEn, seed?.stack, skill.stack),
+        title: pick(skill.titleEn, seedEn?.title, skill.title, seedFr?.title),
+        description: pick(skill.descriptionEn, seedEn?.description, skill.description, seedFr?.description),
+        stack: pickList(skill.stackEn, seedEn?.stack, skill.stack, seedFr?.stack),
       };
     }),
     cases: content.cases.map((study) => {
-      const seed = EN_CASES[study.id];
+      const seedEn = EN_CASES[study.id];
+      const seedFr = SEED_CASES_FR.get(study.id);
       return {
         ...study,
-        title: pick(study.titleEn, seed?.title, study.title),
-        shortTitle: pick(study.shortTitleEn, seed?.shortTitle, study.shortTitle),
-        summary: pick(study.summaryEn, seed?.summary, study.summary),
-        role: pick(study.roleEn, seed?.role, study.role),
-        client: pick(study.clientEn, seed?.client, study.client),
-        deliverables: pickList(study.deliverablesEn, seed?.deliverables, study.deliverables),
-        context: pick(study.contextEn, seed?.context, study.context),
-        problem: pick(study.problemEn, seed?.problem, study.problem),
-        approach: pickList(study.approachEn, seed?.approach, study.approach),
-        result: pick(study.resultEn, seed?.result, study.result),
+        title: pick(study.titleEn, seedEn?.title, study.title, seedFr?.title),
+        shortTitle: pick(study.shortTitleEn, seedEn?.shortTitle, study.shortTitle, seedFr?.shortTitle),
+        summary: pick(study.summaryEn, seedEn?.summary, study.summary, seedFr?.summary),
+        role: pick(study.roleEn, seedEn?.role, study.role, seedFr?.role),
+        client: pick(study.clientEn, seedEn?.client, study.client, seedFr?.client),
+        deliverables: pickList(study.deliverablesEn, seedEn?.deliverables, study.deliverables, seedFr?.deliverables),
+        context: pick(study.contextEn, seedEn?.context, study.context, seedFr?.context),
+        problem: pick(study.problemEn, seedEn?.problem, study.problem, seedFr?.problem),
+        approach: pickList(study.approachEn, seedEn?.approach, study.approach, seedFr?.approach),
+        result: pick(study.resultEn, seedEn?.result, study.result, seedFr?.result),
         figures: study.figures?.map((figure, i) => ({
           ...figure,
-          label: pick(figure.labelEn, seed?.figures?.[i]?.label, figure.label),
+          label: pick(figure.labelEn, seedEn?.figures?.[i]?.label, figure.label, seedFr?.figures?.[i]?.label),
         })),
         images: study.images.map((image, i) => ({
           ...image,
-          caption: pick(image.captionEn, seed?.images?.[i]?.caption, image.caption),
+          caption: pick(image.captionEn, seedEn?.images?.[i]?.caption, image.caption, seedFr?.images?.[i]?.caption),
         })),
         links: study.links?.map((link, i) => ({
           ...link,
-          label: pick(link.labelEn, seed?.links?.[i]?.label, link.label),
+          label: pick(link.labelEn, seedEn?.links?.[i]?.label, link.label, seedFr?.links?.[i]?.label),
         })),
       };
     }),
+    // `EN_LIKE_KIND` is keyed by the French value itself, so a lookup can only
+    // hit while the French still matches — the rule above holds by construction.
     likes: content.likes.map((like) => ({
       ...like,
-      kind: pick(like.kindEn, EN_LIKE_KIND[like.kind], like.kind),
+      kind: pick(like.kindEn, EN_LIKE_KIND[like.kind], like.kind, like.kind),
     })),
   };
 }
