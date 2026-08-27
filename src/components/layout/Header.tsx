@@ -1,7 +1,6 @@
 import { Github, Linkedin, Mail } from "lucide-react";
 import { hrefFor, isModifiedClick } from "@/lib/router";
 import type { Socials } from "@/lib/content";
-import { useLocale, translate } from "@/lib/i18n";
 import { Wordmark } from "./Wordmark";
 
 export interface HeaderProps {
@@ -15,15 +14,8 @@ const ICON_LINK =
   "inline-flex size-11 sm:size-9 items-center justify-center rounded-md text-fg-muted " +
   "transition-[background-color,color] duration-150 ease-out hover:bg-gray-100 hover:text-fg";
 
-/** The CMS only ever edits one CV (the French one, via `socials.cv`) — the
- *  English PDF is a fixed asset, swapped in by locale rather than added as
- *  a second admin field. */
-const CV_EN_HREF = "/pdf/cv-en.pdf";
-
 export function Header({ socials, logo, onNavigate }: HeaderProps) {
   const homeHref = hrefFor("home");
-  const { locale } = useLocale();
-  const cvHref = locale === "en" ? CV_EN_HREF : socials.cv;
 
   return (
     <header
@@ -53,7 +45,7 @@ export function Header({ socials, logo, onNavigate }: HeaderProps) {
           <Wordmark className="h-8 w-auto" src={logo} />
         </a>
 
-        <nav aria-label={translate(locale, "socials")} className="flex items-center gap-0.5">
+        <nav aria-label="Réseaux" className="flex items-center gap-0.5">
           <a
             href={socials.github}
             target="_blank"
@@ -72,12 +64,12 @@ export function Header({ socials, logo, onNavigate }: HeaderProps) {
           >
             <Linkedin size={17} strokeWidth={1.75} aria-hidden="true" />
           </a>
-          <a href={socials.mail} aria-label={translate(locale, "sendMail")} className={ICON_LINK}>
+          <a href={socials.mail} aria-label="Envoyer un mail" className={ICON_LINK}>
             <Mail size={17} strokeWidth={1.75} aria-hidden="true" />
           </a>
 
           <a
-            href={cvHref}
+            href={socials.cv}
             target="_blank"
             rel="noopener noreferrer"
             className="
@@ -87,7 +79,7 @@ export function Header({ socials, logo, onNavigate }: HeaderProps) {
               hover:border-gray-400 hover:bg-bg-subtle
             "
           >
-            {translate(locale, "myResume")}
+            mon cv
           </a>
         </nav>
       </div>

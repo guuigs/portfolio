@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import type { Content } from "@/lib/content";
-import { useLocale, translate } from "@/lib/i18n";
 
 export interface AccueilProps {
   content: Content;
@@ -17,7 +16,6 @@ const DEFAULT_RATIO = 3168 / 1344;
 export function Accueil({ content }: AccueilProps) {
   const { heroImage, heroTitle } = content.profile;
   const imgRef = useRef<HTMLImageElement>(null);
-  const { locale } = useLocale();
 
   // The visual is editable from the CMS, so its proportions are not known at
   // build time — a GIF or a differently-cropped PNG would otherwise reserve
@@ -39,7 +37,7 @@ export function Accueil({ content }: AccueilProps) {
   }, [heroImage]);
 
   return (
-    <section aria-label={translate(locale, "visual")} className="gutter-x mx-auto w-full max-w-5xl">
+    <section aria-label="Visuel" className="gutter-x mx-auto w-full max-w-5xl">
       {/* No frame and no fill: the visual is meant to sit straight on the page,
           so a transparent PNG reads as part of it rather than inside a card. */}
       {heroImage ? (
@@ -60,7 +58,7 @@ export function Accueil({ content }: AccueilProps) {
         />
       ) : (
         <div className="flex aspect-16/9 items-center justify-center rounded-xl border border-line bg-bg-subtle">
-          <span className="overline">{translate(locale, "visualComingSoon")}</span>
+          <span className="overline">visuel à venir</span>
         </div>
       )}
     </section>

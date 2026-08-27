@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { IconButton } from "@/components/ui/IconButton";
 import { RichText } from "@/components/ui/RichText";
 import { Editable } from "@/components/cms/Editable";
-import { useLocale, translate, type Locale } from "@/lib/i18n";
 
 export interface CasEtudesProps {
   content: Content;
@@ -25,17 +24,7 @@ export interface CasEtudesProps {
  * phone screens end up unreadable. This is the escape hatch: same image, no
  * frame, as large as the viewport allows.
  */
-function ImageZoom({
-  src,
-  caption,
-  onClose,
-  locale,
-}: {
-  src: string | null;
-  caption?: string;
-  onClose: () => void;
-  locale: Locale;
-}) {
+function ImageZoom({ src, caption, onClose }: { src: string | null; caption?: string; onClose: () => void }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -56,7 +45,7 @@ function ImageZoom({
   return (
     <dialog
       ref={dialogRef}
-      aria-label={caption || translate(locale, "fullSizeImage")}
+      aria-label={caption || "Image en grand"}
       onClick={(event) => {
         if (event.target === dialogRef.current) dialogRef.current?.close();
       }}
@@ -69,7 +58,7 @@ function ImageZoom({
       {src && (
         <div className="relative flex max-h-[94dvh] flex-col">
           <IconButton
-            label={translate(locale, "close")}
+            label="Fermer"
             onClick={() => dialogRef.current?.close()}
             className="absolute right-3 top-3 z-10 bg-surface/90 backdrop-blur-sm"
           >
@@ -155,14 +144,12 @@ function Gallery({
   admin,
   setField,
   onZoom,
-  locale,
 }: {
   images: CaseStudy["images"];
   caseIndex: number;
   admin: boolean;
   setField: (path: string, value: unknown) => void;
   onZoom: (image: { src: string; caption?: string }) => void;
-  locale: Locale;
 }) {
   if (images.length === 0) return null;
 
@@ -176,11 +163,7 @@ function Gallery({
           <button
             type="button"
             onClick={() => onZoom({ src: image.value, caption: image.caption })}
-            aria-label={
-              image.caption
-                ? `${translate(locale, "zoomCaption")}${image.caption}`
-                : translate(locale, "zoomImage")
-            }
+            aria-label={image.caption ? `Agrandir : ${image.caption}` : "Agrandir l’image"}
             className="
               group relative block w-full cursor-zoom-in overflow-hidden rounded-lg
               border border-line bg-bg-subtle
@@ -276,7 +259,6 @@ function Carousel({
   const hostRef = useRef<HTMLDivElement>(null);
   const [metrics, setMetrics] = useState<Metrics>(() => measure(1280));
   const swipe = useRef<{ x: number; y: number } | null>(null);
-  const { locale } = useLocale();
 
   useLayoutEffect(() => {
     const host = hostRef.current;
@@ -308,7 +290,7 @@ function Carousel({
     <div
       ref={hostRef}
       role="group"
-      aria-label={translate(locale, "caseStudies")}
+      aria-label="Cas d’études"
       className="carousel-mask relative w-full touch-pan-y overflow-hidden"
       style={{ height }}
       // The arrows are pointer-only, so without this a phone can just tap the
@@ -375,7 +357,6 @@ function Carousel({
 
 export function CasEtudes({ content, admin, setField, activeId, onSelect }: CasEtudesProps) {
   const { cases } = content;
-  const { locale } = useLocale();
   const index = Math.max(0, cases.findIndex((study) => study.id === activeId));
   const current: CaseStudy | undefined = cases[index];
   const [zoom, setZoom] = useState<{ src: string; caption?: string } | null>(null);
@@ -408,19 +389,19 @@ export function CasEtudes({ content, admin, setField, activeId, onSelect }: CasE
   if (!current) return null;
 
   return (
-    <section aria-label={translate(locale, "caseStudies")} className="flex flex-col gap-12">
+    <section aria-label="Cas d’études" className="flex flex-col gap-12">
       <div className="relative">
         <Carousel cases={cases} activeIndex={index} onSelect={onSelect} onStep={step} />
 
         <IconButton
-          label={translate(locale, "previousCase")}
+          label="Cas d’étude précédent"
           onClick={() => step(-1)}
           className="absolute left-4 top-1/2 z-20 hidden -translate-y-1/2 bg-surface/90 backdrop-blur-sm sm:inline-flex lg:left-8"
         >
           <ArrowLeft size={16} strokeWidth={1.75} aria-hidden="true" />
         </IconButton>
         <IconButton
-          label={translate(locale, "nextCase")}
+          label="Cas d’étude suivant"
           onClick={() => step(1)}
           className="absolute right-4 top-1/2 z-20 hidden -translate-y-1/2 bg-surface/90 backdrop-blur-sm sm:inline-flex lg:right-8"
         >
@@ -459,11 +440,11 @@ export function CasEtudes({ content, admin, setField, activeId, onSelect }: CasE
 
           <dl className="mt-1 flex flex-col gap-2 border-t border-line pt-5">
             {[
-              [translate(locale, "role"), current.role as React.ReactNode],
-              [translate(locale, "context"), current.client],
-              [translate(locale, "period"), current.date],
+              ["rôle", current.role as React.ReactNode],
+              ["contexte", current.client],
+              ["période", current.date],
               [
-                translate(locale, "deliverables"),
+                "livrables",
                 <span className="flex flex-col gap-0.5">
                   {current.deliverables.map((item) => (
                     <span key={item}>{item}</span>
@@ -481,7 +462,7 @@ export function CasEtudes({ content, admin, setField, activeId, onSelect }: CasE
           </dl>
         </header>
 
-        <Section title={translate(locale, "theContext")}>
+        <Section title="le contexte">
           <Prose
             value={current.context}
             path={`cases.${index}.context`}
@@ -490,7 +471,7 @@ export function CasEtudes({ content, admin, setField, activeId, onSelect }: CasE
           />
         </Section>
 
-        <Section title={translate(locale, "theProblem")}>
+        <Section title="le problème">
           <Prose
             value={current.problem}
             path={`cases.${index}.problem`}
@@ -499,7 +480,7 @@ export function CasEtudes({ content, admin, setField, activeId, onSelect }: CasE
           />
         </Section>
 
-        <Section title={translate(locale, "theApproach")}>
+        <Section title="l’approche">
           <ol className="flex max-w-prose flex-col gap-3">
             {current.approach.map((step, i) => (
               <li
@@ -518,7 +499,7 @@ export function CasEtudes({ content, admin, setField, activeId, onSelect }: CasE
           </ol>
         </Section>
 
-        <Section title={translate(locale, "theResult")}>
+        <Section title="le résultat">
           <Prose
             value={current.result}
             path={`cases.${index}.result`}
@@ -536,7 +517,6 @@ export function CasEtudes({ content, admin, setField, activeId, onSelect }: CasE
           admin={admin}
           setField={setField}
           onZoom={setZoom}
-          locale={locale}
         />
 
         {current.links && current.links.length > 0 && (
@@ -567,12 +547,7 @@ export function CasEtudes({ content, admin, setField, activeId, onSelect }: CasE
         )}
       </article>
 
-      <ImageZoom
-        src={zoom?.src ?? null}
-        caption={zoom?.caption}
-        onClose={closeZoom}
-        locale={locale}
-      />
+      <ImageZoom src={zoom?.src ?? null} caption={zoom?.caption} onClose={closeZoom} />
     </section>
   );
 }

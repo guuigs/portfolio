@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { ArrowLeft, ArrowRight, ArrowUpRight, X } from "lucide-react";
 import type { Like } from "@/lib/content";
-import { useLocale, translate } from "@/lib/i18n";
 import { IconButton } from "./IconButton";
 
 export interface LightboxProps {
@@ -31,7 +30,6 @@ function Meta({ label, value }: { label: string; value: string }) {
  */
 export function Lightbox({ likes, selectedId, onSelect }: LightboxProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const { locale } = useLocale();
 
   const index = likes.findIndex((like) => like.id === selectedId);
   const like = index >= 0 ? likes[index] : null;
@@ -75,7 +73,7 @@ export function Lightbox({ likes, selectedId, onSelect }: LightboxProps) {
   return (
     <dialog
       ref={dialogRef}
-      aria-label={like ? `${like.title}, ${like.author}` : translate(locale, "detail")}
+      aria-label={like ? `${like.title}, ${like.author}` : "Détail"}
       onClick={(event) => {
         // Clicking the backdrop (the dialog element itself) dismisses.
         if (event.target === dialogRef.current) dialogRef.current?.close();
@@ -103,7 +101,7 @@ export function Lightbox({ likes, selectedId, onSelect }: LightboxProps) {
 
             <div className="absolute inset-x-4 bottom-4 flex items-center justify-between sm:inset-x-5 sm:bottom-5">
               <IconButton
-                label={translate(locale, "previous")}
+                label="Précédent"
                 onClick={() => step(-1)}
                 className="bg-surface/90 backdrop-blur-sm"
               >
@@ -113,7 +111,7 @@ export function Lightbox({ likes, selectedId, onSelect }: LightboxProps) {
                 {index + 1} / {likes.length}
               </span>
               <IconButton
-                label={translate(locale, "next")}
+                label="Suivant"
                 onClick={() => step(1)}
                 className="bg-surface/90 backdrop-blur-sm"
               >
@@ -126,7 +124,7 @@ export function Lightbox({ likes, selectedId, onSelect }: LightboxProps) {
             <div className="flex items-start justify-between gap-3">
               <h2 className="text-xl tracking-[-0.03em]">{like.title}</h2>
               <IconButton
-                label={translate(locale, "close")}
+                label="Fermer"
                 className="-mr-2 -mt-1 size-8 shrink-0 border-transparent bg-transparent"
                 onClick={() => dialogRef.current?.close()}
               >
@@ -135,9 +133,9 @@ export function Lightbox({ likes, selectedId, onSelect }: LightboxProps) {
             </div>
 
             <dl className="flex flex-col border-b border-line">
-              <Meta label={translate(locale, "author")} value={like.author} />
-              <Meta label={translate(locale, "type")} value={like.kind} />
-              <Meta label={translate(locale, "year")} value={like.date} />
+              <Meta label="auteur" value={like.author} />
+              <Meta label="type" value={like.kind} />
+              <Meta label="année" value={like.date} />
             </dl>
 
             <a
@@ -151,7 +149,7 @@ export function Lightbox({ likes, selectedId, onSelect }: LightboxProps) {
                 hover:border-gray-400 hover:bg-bg-subtle
               "
             >
-              {translate(locale, "learnMore")}
+              en savoir plus
               <ArrowUpRight
                 size={15}
                 strokeWidth={1.75}

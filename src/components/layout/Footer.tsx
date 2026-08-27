@@ -3,47 +3,11 @@ import { Editable } from "@/components/cms/Editable";
 import { RichText } from "@/components/ui/RichText";
 import { Signature } from "@/components/ui/Signature";
 import { AsciiStage } from "@/components/effects/AsciiStage";
-import { useLocale, translate, type Locale } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 
 export interface FooterProps {
   content: Content;
   admin: boolean;
   setField: (path: string, value: unknown) => void;
-}
-
-/** Discreet FR/EN switch — mono type, the same voice as the meta row it
- *  sits in, so it reads as another piece of footer chrome rather than a
- *  UI control bolted on top. */
-function LocaleSwitch() {
-  const { locale, setLocale } = useLocale();
-
-  const option = (value: Locale, label: string) => (
-    <button
-      type="button"
-      onClick={() => setLocale(value)}
-      aria-current={locale === value ? "true" : undefined}
-      aria-label={translate(locale, value === "fr" ? "switchToFrench" : "switchToEnglish")}
-      className={cn(
-        "rounded-[3px] px-0.5 transition-colors duration-150 ease-out",
-        locale === value
-          ? "text-fg"
-          : "text-fg-faint hover:text-fg-muted",
-      )}
-    >
-      {label}
-    </button>
-  );
-
-  return (
-    <div className="flex items-center gap-1 font-mono text-[13px] sm:text-[12px]">
-      {option("fr", "FR")}
-      <span aria-hidden="true" className="text-fg-faint">
-        /
-      </span>
-      {option("en", "EN")}
-    </div>
-  );
 }
 
 export function Footer({ content, admin, setField }: FooterProps) {
@@ -103,10 +67,7 @@ export function Footer({ content, admin, setField }: FooterProps) {
 
         <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3">
           <p className="font-mono text-[13px] text-fg-subtle sm:text-[12px]">@ {year}</p>
-          <div className="flex items-center gap-6">
-            <p className="font-mono text-[13px] text-fg-subtle sm:text-[12px]">{profile.name}</p>
-            <LocaleSwitch />
-          </div>
+          <p className="font-mono text-[13px] text-fg-subtle sm:text-[12px]">{profile.name}</p>
         </div>
       </div>
     </footer>

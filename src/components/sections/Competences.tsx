@@ -4,7 +4,6 @@ import type { CaseStudy, Content } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import { Chip } from "@/components/ui/Chip";
 import { Editable } from "@/components/cms/Editable";
-import { useLocale, translate } from "@/lib/i18n";
 
 export interface CompetencesProps {
   content: Content;
@@ -69,7 +68,6 @@ function CaseCard({ study, onOpen }: { study: CaseStudy; onOpen: () => void }) {
  */
 function SkillNav({ skills }: { skills: Content["skills"] }) {
   const [activeId, setActiveId] = useState(skills[0]?.id ?? "");
-  const { locale } = useLocale();
 
   useEffect(() => {
     const targets = skills
@@ -95,7 +93,7 @@ function SkillNav({ skills }: { skills: Content["skills"] }) {
 
   return (
     <nav
-      aria-label={translate(locale, "skillsIndex")}
+      aria-label="Index des compétences"
       className="sticky top-24 hidden self-start lg:block"
     >
       <ul className="flex flex-col gap-1 border-l border-line">
@@ -125,13 +123,8 @@ function SkillNav({ skills }: { skills: Content["skills"] }) {
 }
 
 export function Competences({ content, admin, setField, onOpenCase }: CompetencesProps) {
-  const { locale } = useLocale();
-
   return (
-    <section
-      aria-label={translate(locale, "skillsSection")}
-      className="gutter-x mx-auto w-full max-w-5xl"
-    >
+    <section aria-label="Compétences" className="gutter-x mx-auto w-full max-w-5xl">
       <div className="grid gap-10 lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-14">
         <SkillNav skills={content.skills} />
 
@@ -167,14 +160,14 @@ export function Competences({ content, admin, setField, onOpenCase }: Competence
                   />
                 </div>
 
-                <Rail label={translate(locale, "techStack")}>
+                <Rail label="stack technique">
                   {skill.stack.map((item) => (
                     <Chip key={item}>{item}</Chip>
                   ))}
                 </Rail>
 
                 {linked.length > 0 && (
-                  <Rail label={translate(locale, "relatedCases")}>
+                  <Rail label="cas d’études">
                     {linked.map((study) => (
                       <CaseCard
                         key={study.id}

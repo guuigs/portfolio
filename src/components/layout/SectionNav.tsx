@@ -1,11 +1,10 @@
 import { cn } from "@/lib/utils";
 import { hrefFor, isModifiedClick, type SectionId } from "@/lib/router";
-import { useLocale, translate, type StringKey } from "@/lib/i18n";
 
-const ITEMS: { id: Exclude<SectionId, "home">; labelKey: StringKey }[] = [
-  { id: "competences", labelKey: "navSkills" },
-  { id: "cas-etudes", labelKey: "navCases" },
-  { id: "coups-de-coeur", labelKey: "navLikes" },
+const ITEMS: { id: Exclude<SectionId, "home">; label: string }[] = [
+  { id: "competences", label: "compétences" },
+  { id: "cas-etudes", label: "cas d’études" },
+  { id: "coups-de-coeur", label: "coups de cœur" },
 ];
 
 export interface SectionNavProps {
@@ -18,11 +17,9 @@ export interface SectionNavProps {
  * as links so the URL is the source of truth and middle-click still works.
  */
 export function SectionNav({ active, onNavigate }: SectionNavProps) {
-  const { locale } = useLocale();
-
   return (
     <nav
-      aria-label={translate(locale, "sections")}
+      aria-label="Sections"
       className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-center"
     >
       {ITEMS.map((item) => {
@@ -51,7 +48,7 @@ export function SectionNav({ active, onNavigate }: SectionNavProps) {
                 : "border-line-strong bg-surface text-fg-muted shadow-xs hover:border-gray-400 hover:bg-bg-subtle hover:text-fg",
             )}
           >
-            {translate(locale, item.labelKey)}
+            {item.label}
           </a>
         );
       })}
