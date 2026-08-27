@@ -155,6 +155,15 @@ export interface Profile {
 
 export interface Socials {
   cv: string;
+  /**
+   * English CV, offered next to the French one in the header menu.
+   *
+   * Optional so a payload published before this field existed still loads —
+   * the header falls back to the copy bundled in `public/`. Kept editable
+   * rather than hard-coded precisely so that replacing it is a CMS upload,
+   * like the French one, and never a redeploy.
+   */
+  cvEn?: string;
   linkedin: string;
   mail: string;
   github: string;
@@ -192,6 +201,7 @@ export const DEFAULT_CONTENT: Content = {
 
   socials: {
     cv: "/pdf/cv.pdf",
+    cvEn: "/pdf/cv-en.pdf",
     linkedin: "https://www.linkedin.com/in/guilhem-terrier-838928240/",
     mail: "mailto:guilhemtr@proton.me",
     github: "https://github.com/guuigs",

@@ -597,11 +597,18 @@ function HomePanel({ store }: { store: ContentStore }) {
           hint="Sert à la fois au header et à l’icône d’onglet. Laisser vide pour garder le logo vectoriel. Un GIF marche ; viser ~96 px de haut minimum, et un cadrage proche du carré pour rester lisible en favicon."
         />
         <FileField
-          label="cv (pdf)"
+          label="cv français (pdf)"
           value={socials.cv}
           onCommit={(v) => setField("socials.cv", v)}
           accept="application/pdf,.pdf"
           hint="Téléverser remplace le CV du bouton « mon cv » sans redéploiement. Publiez ensuite pour que le changement soit visible."
+        />
+        <FileField
+          label="cv anglais (pdf)"
+          value={socials.cvEn ?? ""}
+          onCommit={(v) => setField("socials.cvEn", v)}
+          accept="application/pdf,.pdf"
+          hint="Proposé sous « mon cv », au survol. Laisser vide sert le fichier embarqué dans public/pdf/cv-en.pdf."
         />
         <Field
           label="linkedin"
@@ -1292,7 +1299,10 @@ function MediaAudit({ store }: { store: ContentStore }) {
   const referenced = useMemo(() => {
     const urls = new Set<string>();
     for (const { url } of imagePaths(content)) urls.add(url);
+    // Les deux CV, sinon l'audit signalerait comme orphelin un PDF bel et bien
+    // servi par le menu de l'en-tête — et proposerait de le supprimer.
     if (content.socials.cv) urls.add(content.socials.cv);
+    if (content.socials.cvEn) urls.add(content.socials.cvEn);
     return urls;
   }, [content]);
 
