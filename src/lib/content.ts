@@ -198,6 +198,20 @@ export interface Content {
   skills: Skill[];
   cases: CaseStudy[];
   likes: Like[];
+
+  /**
+   * Provenance of the machine-translated `*En` fields.
+   *
+   * Maps the dotted path of a French field to the exact text that was sent for
+   * translation. It is what lets the CMS tell a translation that is still true
+   * of its source from one whose French has since been rewritten — the drift
+   * that made the English side quietly wrong before. Nothing reads it at render
+   * time: a published `*En` is the author's, and always wins.
+   *
+   * Absent for anything typed by hand, which is the point: only a translation
+   * this app produced can be said to have gone stale.
+   */
+  translations?: { source: Record<string, string> };
 }
 
 // ------------------------------------------------------------- defaults

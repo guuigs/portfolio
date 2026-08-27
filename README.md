@@ -126,6 +126,49 @@ Dans le panneau, `publier` pousse le document vers Supabase et met le site à
 jour pour tout le monde, sans redéploiement. `annuler le brouillon` revient à
 la dernière version publiée.
 
+## La version anglaise
+
+Le français est la source ; l'anglais vit à côté de lui, dans des champs
+`*En` publiés dans le même document. Un visiteur hors de France et de
+Belgique arrive en anglais, et le sélecteur `FR / EN` du pied de page prime
+toujours sur cette détection.
+
+Ce qu'un visiteur anglophone lit se décide champ par champ, dans cet ordre :
+
+1. **le champ `*En` publié** — c'est votre texte, il gagne toujours ;
+2. **la traduction embarquée de `src/lib/content.en.ts`** — mais seulement
+   tant que le français correspond encore, au caractère près, à celui pour
+   lequel elle a été écrite ;
+3. **le français lui-même**.
+
+La deuxième règle est la seule qui mérite qu'on s'y arrête. Une traduction
+écrite en dur n'est vraie que du texte qu'elle traduit : dès que le français
+est réécrit dans le CMS, elle cesse de l'être et disparaît, plutôt que de
+décrire silencieusement une version qui n'existe plus. C'est du texte en dur
+qui ne peut donc jamais survivre à une modification publiée.
+
+### Traduction automatique
+
+Le groupe « Traduction anglaise » du panneau remplit les champs `*En` à partir
+du français. Il ne remplace jamais un anglais déjà écrit : il propose ce qui
+manque, vous relisez, puis vous publiez.
+
+Chaque traduction enregistre le français exact dont elle provient, dans
+`content.translations.source`. C'est ce qui permet au panneau de distinguer
+« jamais traduit » de « traduit, mais le français a changé depuis » — et de ne
+jamais qualifier de périmé un texte que vous avez écrit à la main.
+
+La clé Anthropic ne doit pas partir dans le bundle : l'appel passe par la
+fonction Edge `supabase/functions/translate`, qui la détient et vérifie que
+l'appelant est bien l'adresse admin. À déployer une fois par projet :
+
+```sh
+supabase functions deploy translate
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Sans ce secret, le bouton répond que la clé manque et ne touche à rien.
+
 ### Ce qu'une montée de version emporte
 
 `CONTENT_VERSION` existe parce que la forme du contenu bouge : `cases` est une

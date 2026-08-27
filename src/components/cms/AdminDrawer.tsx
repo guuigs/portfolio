@@ -9,6 +9,7 @@ import {
   Download,
   FileText,
   ImagePlus,
+  Languages,
   Plus,
   CloudUpload,
   LogOut,
@@ -20,6 +21,13 @@ import {
 import { cn } from "@/lib/utils";
 import { useContentStore, type ContentStore } from "@/lib/store";
 import { listMedia, removeMedia, uploadFile, type MediaObject } from "@/lib/supabase";
+import {
+  collectTranslatable,
+  isMissing,
+  isStale,
+  translateAll,
+  type TranslatableField,
+} from "@/lib/translate";
 import type { SectionId } from "@/lib/router";
 import { Button } from "@/components/ui/Button";
 import { IconButton } from "@/components/ui/IconButton";
@@ -1803,6 +1811,137 @@ function PublishControls({ store }: { store: ContentStore }) {
   );
 }
 
+/* ------------------------------------------------------------- traduction */
+
+/**
+ * Fills the English fields from the French, on demand.
+ *
+ * Two counts drive it, and the distinction is the whole point. *Missing* is
+ * French with no English at all. *Stale* is English this panel produced whose
+ * French has been rewritten since — tracked in `content.translations.source`,
+ * so a translation typed by hand is never called stale.
+ *
+ * Nothing is overwritten without being asked for: retranslating the stale set
+ * is a separate, explicitly-labelled action.
+ */
+function TranslatePanel({ store }: { store: ContentStore }) {
+  const { content, setField, adminEmail } = store;
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const fields = useMemo(() => collectTranslatable(content), [content]);
+  const missing = useMemo(() => fields.filter(isMissing), [fields]);
+  const stale = useMemo(() => fields.filter(isStale), [fields]);
+
+  const run = async (batch: TranslatableField[], what: string) => {
+    setBusy(true);
+    setMessage(null);
+    setProgress({ done: 0, total: batch.length });
+    try {
+      const result = await translateAll(batch, (done, total) => setProgress({ done, total }));
+
+      for (const [path, value] of Object.entries(result.values)) setField(path, value);
+
+      // Recorded in one write, so a half-applied run can't leave the map
+      // claiming a provenance for text that was never written.
+      const source = { ...(content.translations?.source ?? {}), ...result.sources };
+      setField("translations", { source });
+
+      const written = Object.keys(result.values).length;
+      setMessage(
+        result.failed > 0
+          ? `${written} ${what} traduits, ${result.failed} en échec — ${result.error ?? "erreur inconnue"}`
+          : `${written} ${what} traduits. Relisez, puis publiez.`,
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusy(false);
+      setProgress(null);
+    }
+  };
+
+  if (!adminEmail) {
+    return (
+      <p className="text-[12px] leading-snug text-fg-faint">
+        Connectez-vous pour traduire.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-[12px] leading-snug text-fg-faint">
+        Remplit les champs anglais à partir du français. Rien de ce qui est déjà
+        écrit en anglais n’est écrasé — la traduction est proposée pour ce qui
+        manque, puis vous relisez avant de publier.
+      </p>
+
+      <dl className="flex flex-col gap-px overflow-hidden rounded-md border border-line bg-line">
+        <div className="flex items-baseline justify-between gap-3 bg-surface px-3 py-2">
+          <dt className="overline">sans traduction</dt>
+          <dd className="font-mono text-[13px] text-fg">{missing.length}</dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-3 bg-surface px-3 py-2">
+          <dt className="overline">français réécrit depuis</dt>
+          <dd className="font-mono text-[13px] text-fg">{stale.length}</dd>
+        </div>
+      </dl>
+
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant="primary"
+          disabled={busy || missing.length === 0}
+          onClick={() => void run(missing, "champs")}
+        >
+          <Languages size={14} strokeWidth={1.75} aria-hidden="true" />
+          {busy ? "traduction…" : `traduire les ${missing.length} manquants`}
+        </Button>
+
+        {stale.length > 0 && (
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            onClick={() => void run(stale, "champs")}
+          >
+            retraduire les {stale.length} périmés
+          </Button>
+        )}
+      </div>
+
+      {progress && (
+        <p aria-live="polite" className="font-mono text-[11px] text-fg-subtle">
+          {progress.done} / {progress.total}
+        </p>
+      )}
+
+      {message && (
+        <p aria-live="polite" className="font-mono text-[11px] leading-snug text-fg-subtle">
+          {message}
+        </p>
+      )}
+
+      {stale.length > 0 && (
+        <details className="text-[12px]">
+          <summary className="cursor-pointer text-fg-faint">
+            voir les champs dont le français a changé
+          </summary>
+          <ul className="mt-2 flex flex-col gap-1 text-fg-muted">
+            {stale.map((field) => (
+              <li key={field.enPath} className="leading-snug">
+                {field.label}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ drawer */
 
 export function AdminDrawer({
@@ -1865,6 +2004,9 @@ export function AdminDrawer({
 
         {store.remoteEnabled && (
           <>
+            <Group title="Traduction anglaise" open={false}>
+              <TranslatePanel store={store} />
+            </Group>
             <Group title="Hébergement des images" open={false}>
               <MigrateImages store={store} />
             </Group>
